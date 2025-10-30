@@ -1,7 +1,61 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, dialog } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { createAppWindow } from './app'
 import { closeDatabase } from '@/lib/database/db'
+import { autoUpdater } from 'electron-updater'
+
+// Configurazione auto-updater
+autoUpdater.autoDownload = false // Chiedi conferma prima di scaricare
+autoUpdater.autoInstallOnAppQuit = true // Installa quando l'app si chiude
+
+// Eventi auto-updater
+autoUpdater.on('checking-for-update', () => {
+  console.log('Controllo aggiornamenti...')
+})
+
+autoUpdater.on('update-available', (info) => {
+  console.log('Aggiornamento disponibile:', info.version)
+  
+  dialog.showMessageBox({
+    type: 'info',
+    title: 'Aggiornamento Disponibile',
+    message: `È disponibile la versione ${info.version}. Vuoi scaricarla?`,
+    buttons: ['Sì', 'Più tardi']
+  }).then((result) => {
+    if (result.response === 0) {
+      autoUpdater.downloadUpdate()
+    }
+  })
+})
+
+autoUpdater.on('update-not-available', () => {
+  console.log('Nessun aggiornamento disponibile')
+})
+
+autoUpdater.on('download-progress', (progressObj) => {
+  const message = `Velocità: ${progressObj.bytesPerSecond} - Scaricato ${progressObj.percent}%`
+  console.log(message)
+})
+
+autoUpdater.on('update-downloaded', (info) => {
+  console.log('Aggiornamento scaricato:', info.version)
+  
+  dialog.showMessageBox({
+    type: 'info',
+    title: 'Aggiornamento Pronto',
+    message: `L'aggiornamento alla versione ${info.version} è stato scaricato. L'app verrà riavviata per completare l'installazione.`,
+    buttons: ['Riavvia Ora', 'Più tardi']
+  }).then((result) => {
+    if (result.response === 0) {
+      autoUpdater.quitAndInstall(false, true)
+    }
+  })
+})
+
+autoUpdater.on('error', (err) => {
+  console.error('Errore auto-updater:', err)
+  dialog.showErrorBox('Errore Aggiornamento', `Si è verificato un errore: ${err.message}`)
+})
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -9,8 +63,18 @@ import { closeDatabase } from '@/lib/database/db'
 app.whenReady().then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
+  
   // Create app window
   createAppWindow()
+
+  // Controlla gli aggiornamenti dopo 3 secondi (solo in produzione)
+  if (!app.isPackaged) {
+    console.log('Modalità sviluppo: auto-updater disabilitato')
+  } else {
+    setTimeout(() => {
+      autoUpdater.checkForUpdatesAndNotify()
+    }, 3000)
+  }
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.

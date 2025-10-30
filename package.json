@@ -1,12 +1,12 @@
 {
-  "name": "era",
-  "version": "12.0.0",
-  "description": "A modern Electron application template with React, Vite, TypeScript, Shadcn UI and TailwindCSS",
+"name": "quotify",
+  "version": "1.0.1",
+  "description": "Quotify - La tua app per preventivi",
   "main": "./out/main/main.js",
   "license": "MIT",
   "build": {
-    "appId": "com.la-tua-azienda.era",
-    "productName": "Nome Della Tua App",
+    "appId": "com.pasqualcastelluccia.quotify",
+    "productName": "Quotify",
     "files": [
       "out/**/*"
     ],
@@ -18,8 +18,12 @@
     ]
   },
   "author": {
-    "name": "Guasam",
-    "url": "https://github.com/guasam"
+    "name": "Pasquale Castelluccia",
+    "url": "https://github.com/PasqualeCastelluccia"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PasqualeCastelluccia/Quotify"
   },
   "scripts": {
     "dev": "cross-env ELECTRON_DISABLE_SANDBOX=1 electron-vite dev -w",
@@ -32,14 +36,16 @@
     "electron:build:mac": "electron-builder --mac",
     "electron:build:linux": "electron-builder --linux",
     "electron:build:dir": "electron-builder --dir",
+    "electron:publish:win": "electron-builder --win --publish always",
+    "electron:publish:mac": "electron-builder --mac --publish always",
+    "electron:publish:linux": "electron-builder --linux --publish always",
     "build:unpack": "run-s vite:build:app electron:build:dir",
     "build:win": "run-s vite:build:app electron:build:win",
     "build:mac": "run-s vite:build:app electron:build:mac",
-    "build:linux": "run-s vite:build:app electron:build:linux"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/guasam/electron-react-app"
+    "build:linux": "run-s vite:build:app electron:build:linux",
+    "publish:win": "run-s vite:build:app electron:publish:win",
+    "publish:mac": "run-s vite:build:app electron:publish:mac",
+    "publish:linux": "run-s vite:build:app electron:publish:linux"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -69,6 +75,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "electron-updater": "^6.6.2",
     "lucide-react": "^0.541.0",
     "next-themes": "^0.4.6",
     "nodemailer": "^7.0.10",

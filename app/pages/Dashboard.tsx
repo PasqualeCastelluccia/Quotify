@@ -107,7 +107,7 @@ export default function Dashboard() {
           <div>
             <h2 className="text-xl font-semibold">Ultimi Preventivi</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Gli ultimi 10 preventivi creati
+              Ultimi 10 preventivi creati
             </p>
           </div>
           <Button
