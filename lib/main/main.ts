@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { createAppWindow } from './app'
+import { closeDatabase } from '@/lib/database/db'
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -34,6 +35,11 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
+})
+
+// Close database before app quits
+app.on('before-quit', () => {
+  closeDatabase()
 })
 
 // In this file, you can include the rest of your app's specific main process

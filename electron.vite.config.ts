@@ -18,7 +18,9 @@ export default defineConfig({
           main: resolve(__dirname, 'lib/main/main.ts'),
         },
       },
+      copyPublicDir: false,
     },
+    publicDir: resolve(__dirname, 'lib/templates'),
     resolve: {
       alias: aliases,
     },
