@@ -74,7 +74,7 @@ export default function Dashboard() {
     <div className="flex flex-1 flex-col gap-4 p-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Panoramica generale</p>
+        <p className="text-muted-foreground mt-1">Panoramica generale Quotify</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
