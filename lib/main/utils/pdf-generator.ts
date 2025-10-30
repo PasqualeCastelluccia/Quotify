@@ -180,15 +180,19 @@ export async function generatePreventivoPDF(data: PreventivoData): Promise<strin
     }
   }
 
-  let templatePath: string
+let templatePath: string
 
-  if (app.isPackaged) {
-    templatePath = path.join(process.resourcesPath, 'preventivo.html')
-  } else {
-    // In development, __dirname points to out/main (code is bundled into main.js)
-    // Path: electron-react-app/out/main -> electron-react-app/lib/templates
-    templatePath = path.join(__dirname, '../..', 'lib', 'templates', 'preventivo.html')
-  }
+if (app.isPackaged) {
+  // In produzione: resources/lib/preventivo.html
+  templatePath = path.join(process.resourcesPath, 'lib', 'preventivo.html')
+} else {
+  // In sviluppo
+  templatePath = path.join(__dirname, '../..', 'lib', 'templates', 'preventivo.html')
+}
+
+// Debug (opzionale, rimuovi dopo il test)
+console.log('🔍 Template path:', templatePath)
+console.log('📁 Template exists:', fs.existsSync(templatePath))
 
   if (!fs.existsSync(templatePath)) {
     throw new Error(`Template not found at: ${templatePath}`)

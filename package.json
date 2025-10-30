@@ -1,22 +1,9 @@
 {
 "name": "quotify",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Quotify - La tua app per preventivi",
   "main": "./out/main/main.js",
   "license": "MIT",
-  "build": {
-    "appId": "com.pasqualcastelluccia.quotify",
-    "productName": "Quotify",
-    "files": [
-      "out/**/*"
-    ],
-    "extraResources": [
-      {
-        "from": "resources",
-        "to": "."
-      }
-    ]
-  },
   "author": {
     "name": "Pasquale Castelluccia",
     "url": "https://github.com/PasqualeCastelluccia"
