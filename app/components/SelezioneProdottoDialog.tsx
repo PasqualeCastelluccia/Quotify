@@ -7,11 +7,18 @@ import { Button } from "@/app/components/ui/button"
 import { Label } from "@/app/components/ui/label"
 import { Search, Package, Ruler, ArrowLeft, Plus } from "lucide-react"
 import { Prodotto } from "@/app/types/prodotto"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/app/components/ui/select"
 
 interface SelezioneProdottoDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSelectProdotto: (prodotto: Prodotto, config: { quantita: number, sc1: number, sc2: number, sc3: number }) => void
+  onSelectProdotto: (prodotto: Prodotto, config: { quantita: number, um: string, sc1: number, sc2: number, sc3: number }) => void
   editMode?: boolean
   initialData?: {
     codice: string
@@ -19,6 +26,7 @@ interface SelezioneProdottoDialogProps {
     descrizione: string
     prezzo: number
     quantita: number
+    um: string
     sc1: number
     sc2: number
     sc3: number
@@ -56,6 +64,7 @@ export function SelezioneProdottoDialog({ open, onOpenChange, onSelectProdotto, 
   const [step, setStep] = useState<1 | 2>(1)
   const [selectedProdotto, setSelectedProdotto] = useState<Prodotto | null>(null)
   const [quantita, setQuantita] = useState(1)
+  const [um, setUm] = useState("PZ")
   const [sc1, setSc1] = useState(0)
   const [sc2, setSc2] = useState(0)
   const [sc3, setSc3] = useState(0)
@@ -74,6 +83,7 @@ export function SelezioneProdottoDialog({ open, onOpenChange, onSelectProdotto, 
         updatedAt: 0
       } as Prodotto)
       setQuantita(initialData.quantita)
+      setUm(initialData.um)
       setSc1(initialData.sc1)
       setSc2(initialData.sc2)
       setSc3(initialData.sc3)
@@ -82,6 +92,7 @@ export function SelezioneProdottoDialog({ open, onOpenChange, onSelectProdotto, 
       setStep(1)
       setSelectedProdotto(null)
       setQuantita(1)
+      setUm("PZ")
       setSc1(0)
       setSc2(0)
       setSc3(0)
@@ -141,7 +152,7 @@ export function SelezioneProdottoDialog({ open, onOpenChange, onSelectProdotto, 
   const handleAggiungiProdotto = () => {
     if (!selectedProdotto) return
 
-    onSelectProdotto(selectedProdotto, { quantita, sc1, sc2, sc3 })
+    onSelectProdotto(selectedProdotto, { quantita, um, sc1, sc2, sc3 })
 
     // Chiudi e resetta
     handleClose()
@@ -153,6 +164,7 @@ export function SelezioneProdottoDialog({ open, onOpenChange, onSelectProdotto, 
     setSelectedProdotto(null)
     // Reset valori
     setQuantita(1)
+    setUm("PZ")
     setSc1(0)
     setSc2(0)
     setSc3(0)
@@ -165,6 +177,7 @@ export function SelezioneProdottoDialog({ open, onOpenChange, onSelectProdotto, 
     setSearchTerm("")
     setProdotti([])
     setQuantita(1)
+    setUm("PZ")
     setSc1(0)
     setSc2(0)
     setSc3(0)
@@ -302,23 +315,41 @@ export function SelezioneProdottoDialog({ open, onOpenChange, onSelectProdotto, 
               <div className="grid grid-cols-2 gap-6">
                 {/* Colonna sinistra: Input */}
                 <div className="space-y-4">
-                  {/* Quantità */}
-                  <div>
-                    <Label htmlFor="quantita" className="mb-2 block">
-                      Quantità <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="quantita"
-                      type="number"
-                      value={quantita}
-                      onChange={(e) => {
-                        const value = parseInt(e.target.value) || 1
-                        setQuantita(Math.max(1, value))
-                      }}
-                      step="1"
-                      min="1"
-                      className="text-lg"
-                    />
+                  {/* Quantità e Unità di Misura */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="quantita" className="mb-2 block">
+                        Quantità <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="quantita"
+                        type="number"
+                        value={quantita}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 1
+                          setQuantita(Math.max(1, value))
+                        }}
+                        step="1"
+                        min="1"
+                        className="!h-12 w-full"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="um" className="mb-2 block">
+                        U.M. <span className="text-red-500">*</span>
+                      </Label>
+                      <Select value={um} onValueChange={setUm}>
+                        <SelectTrigger className="!h-12 w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="PZ">PZ (pezzi)</SelectItem>
+                          <SelectItem value="mt">mt (metri)</SelectItem>
+                          <SelectItem value="lt">lt (litri)</SelectItem>
+                          <SelectItem value="mq">mq (metri quadri)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
 
                   {/* Sconti sulla stessa riga */}

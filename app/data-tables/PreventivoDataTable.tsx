@@ -26,7 +26,7 @@ export function PreventivoDataTable({ data, onDataChange }: PreventivoDataTableP
   const [editingRow, setEditingRow] = React.useState<RigaPreventivo | null>(null)
 
   // Funzione per aggiungere un prodotto dalla selezione
-  const handleSelectProdotto = (prodotto: Prodotto, config: { quantita: number, sc1: number, sc2: number, sc3: number }) => {
+  const handleSelectProdotto = (prodotto: Prodotto, config: { quantita: number, um: string, sc1: number, sc2: number, sc3: number }) => {
     // Calcola netto unitario con gli sconti
     let nettoUnitario = prodotto.prezzo
     if (config.sc1 > 0) nettoUnitario = nettoUnitario - (nettoUnitario * config.sc1 / 100)
@@ -44,6 +44,7 @@ export function PreventivoDataTable({ data, onDataChange }: PreventivoDataTableP
           return {
             ...row,
             quantita: config.quantita,
+            um: config.um,
             sc1: config.sc1,
             sc2: config.sc2,
             sc3: config.sc3,
@@ -63,7 +64,7 @@ export function PreventivoDataTable({ data, onDataChange }: PreventivoDataTableP
         codice: prodotto.codice,
         misura: prodotto.misura,
         descrizione: prodotto.descrizione,
-        um: "PZ",
+        um: config.um,
         quantita: config.quantita,
         listinoCad: prodotto.prezzo,
         totListinoRiga: totListinoRiga,
@@ -339,6 +340,7 @@ export function PreventivoDataTable({ data, onDataChange }: PreventivoDataTableP
           descrizione: editingRow.descrizione,
           prezzo: editingRow.listinoCad,
           quantita: editingRow.quantita,
+          um: editingRow.um,
           sc1: editingRow.sc1,
           sc2: editingRow.sc2,
           sc3: editingRow.sc3,
