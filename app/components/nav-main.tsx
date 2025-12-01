@@ -1,10 +1,6 @@
-import { ChevronRight, type LucideIcon } from "lucide-react"
-import type { PageType } from "@/app/types/navigation"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/app/components/ui/collapsible"
+import { ChevronRight, type LucideIcon } from 'lucide-react'
+import type { PageType } from '@/app/types/navigation'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/app/components/ui/collapsible'
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -14,7 +10,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-} from "@/app/components/ui/sidebar"
+} from '@/app/components/ui/sidebar'
 
 export function NavMain({
   items,
@@ -34,15 +30,10 @@ export function NavMain({
 }) {
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Platform</SidebarGroupLabel>
+      <SidebarGroupLabel>Menù</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => (
-          <Collapsible
-            key={item.title}
-            asChild
-            defaultOpen={item.isActive}
-            className="group/collapsible"
-          >
+          <Collapsible key={item.title} asChild defaultOpen={item.isActive} className="group/collapsible">
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
                 <SidebarMenuButton
@@ -66,9 +57,7 @@ export function NavMain({
                   <SidebarMenuSub>
                     {item.items.map((subItem) => (
                       <SidebarMenuSubItem key={subItem.title}>
-                        <SidebarMenuSubButton
-                          onClick={() => onNavigate(subItem.page)}
-                        >
+                        <SidebarMenuSubButton onClick={() => onNavigate(subItem.page)}>
                           <span>{subItem.title}</span>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>

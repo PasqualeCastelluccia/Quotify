@@ -1,67 +1,87 @@
 import { handle } from '@/lib/main/shared'
-import { db } from '@/lib/database/db'
-import { generatePreventivoPDF } from '@/lib/main/utils/pdf-generator'
-import { shell } from 'electron'
+import { prisma } from '@/lib/database/prisma'
+import { generateQuotePDF } from '@/lib/main/utils/pdf-generator'
+import { dialog } from 'electron'
+import fs from 'fs'
 
-interface Preventivo {
-  id: number
-  numero: string
-  data: string
-  companyProfileId?: number
-  clienteBusinessName: string
-  clienteEmail?: string
-  clienteVatNumber?: string
-  clienteAddress?: string
-  clienteZipCode?: string
-  clienteCity?: string
-  subtotal: number
-  totalVat: number
-  total: number
-  notes?: string
-  metadata?: string
-  status: string
-}
-
-interface PreventivoItem {
-  code: string
-  measure?: string
-  description: string
-  unit: string
-  quantity: number
-  unitPrice: number
-  discount1: number
-  discount2: number
-  discount3: number
-  netUnitPrice: number
-  netLineTotal: number
-}
 
 export const registerPdfHandlers = () => {
-  handle('pdf:generatePreventivo', async (preventivoId: number) => {
+  handle('pdf:generateQuote', async (quoteId: number) => {
     try {
-      const preventivoStmt = db.prepare('SELECT * FROM preventivi WHERE id = ?')
-      const preventivo = preventivoStmt.get(preventivoId) as Preventivo | undefined
+      const quote = await prisma.quote.findUnique({
+        where: { id: quoteId },
+        include: { items: true },
+      })
 
-      if (!preventivo) {
+      if (!quote) {
         return {
           success: false,
-          error: 'Preventivo not found',
+          error: 'Quote not found',
         }
       }
 
-      const itemsStmt = db.prepare('SELECT * FROM preventivi_items WHERE preventivoId = ? ORDER BY ordering')
-      const items = itemsStmt.all(preventivoId) as PreventivoItem[]
-
-      const pdfPath = await generatePreventivoPDF({
-        preventivo,
-        items,
+      const tempPdfPath = await generateQuotePDF({
+        quote: {
+          id: quote.id,
+          number: quote.number,
+          revision: quote.revision,
+          date: quote.date,
+          companyProfileId: quote.companyProfileId || undefined,
+          customerBusinessName: quote.customerBusinessName,
+          customerEmail: quote.customerEmail || undefined,
+          customerVatNumber: quote.customerVatNumber || undefined,
+          customerAddress: quote.customerAddress || undefined,
+          customerZipCode: quote.customerZipCode || undefined,
+          customerCity: quote.customerCity || undefined,
+          subtotal: quote.subtotal,
+          totalVat: quote.totalVat,
+          total: quote.total,
+          notes: quote.notes || undefined,
+          metadata: quote.metadata || undefined,
+          status: quote.status,
+        },
+        items: quote.items.map((item) => ({
+          code: item.code,
+          measure: item.measure || undefined,
+          description: item.description,
+          unit: item.unit,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          discount1: item.discount1 || 0,
+          discount2: item.discount2 || 0,
+          discount3: item.discount3 || 0,
+          netUnitPrice: item.netUnitPrice,
+          netLineTotal: item.netLineTotal,
+        })),
       })
 
-      await shell.openPath(pdfPath)
+      // Show save dialog
+      const defaultFileName = `preventivo_${quote.number}_rev${quote.revision}.pdf`
+      const { filePath, canceled } = await dialog.showSaveDialog({
+        title: 'Salva preventivo',
+        defaultPath: defaultFileName,
+        filters: [
+          { name: 'PDF', extensions: ['pdf'] },
+          { name: 'Tutti i file', extensions: ['*'] },
+        ],
+      })
+
+      if (canceled || !filePath) {
+        // User canceled, remove temp file
+        fs.unlinkSync(tempPdfPath)
+        return {
+          success: false,
+          error: 'Salvataggio annullato',
+        }
+      }
+
+      // Copy temp file to chosen location
+      fs.copyFileSync(tempPdfPath, filePath)
+      fs.unlinkSync(tempPdfPath)
 
       return {
         success: true,
-        path: pdfPath,
+        path: filePath,
       }
     } catch (error) {
       console.error('Error generating PDF:', error)

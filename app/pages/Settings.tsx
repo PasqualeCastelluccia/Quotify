@@ -1,16 +1,9 @@
-import { useState, useEffect } from "react"
-import { Card } from "@/app/components/ui/card"
-import { Button } from "@/app/components/ui/button"
-import { Building2, Mail, Plus, Trash2, Star } from "lucide-react"
-import { toast } from "sonner"
-import type { CompanyProfile } from "@/lib/conveyor/api/profiles-api"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/app/components/ui/select"
+import { useState, useEffect } from 'react'
+import { Card } from '@/app/components/ui/card'
+import { Button } from '@/app/components/ui/button'
+import { Building2, Mail, Plus, Trash2, Star } from 'lucide-react'
+import { toast } from 'sonner'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,123 +13,212 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/app/components/ui/alert-dialog"
+} from '@/app/components/ui/alert-dialog'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import type { CompanyProfile } from '@/lib/conveyor/api/profiles-api'
 
-type Tab = "company" | "smtp"
+type Tab = 'company' | 'smtp'
 
 export default function Settings() {
-  const [activeTab, setActiveTab] = useState<Tab>("company")
-  const [profiles, setProfiles] = useState<CompanyProfile[]>([])
+  const queryClient = useQueryClient()
+
+  const [activeTab, setActiveTab] = useState<Tab>('company')
   const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null)
-  const [selectedProfile, setSelectedProfile] = useState<CompanyProfile | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
   const [isCreatingNew, setIsCreatingNew] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [wizardStep, setWizardStep] = useState<1 | 2>(1)
 
   // Company form state
   const [companyForm, setCompanyForm] = useState({
-    profileName: "",
-    businessName: "",
-    vatNumber: "",
-    address: "",
-    zipCode: "",
-    city: "",
-    phone: "",
-    email: "",
+    profileName: '',
+    businessName: '',
+    vatNumber: '',
+    address: '',
+    zipCode: '',
+    city: '',
+    phone: '',
+    email: '',
   })
 
   // SMTP form state
   const [smtpForm, setSmtpForm] = useState({
-    smtpHost: "",
+    smtpHost: '',
     smtpPort: 587,
     smtpSecure: false,
-    smtpUser: "",
-    smtpPassword: "",
-    smtpFromEmail: "",
-    smtpFromName: "",
+    smtpUser: '',
+    smtpPassword: '',
+    smtpFromEmail: '',
+    smtpFromName: '',
   })
 
-  // Load profiles on mount
+  // Fetch all profiles
+  const { data: profiles = [], isLoading: isLoadingProfiles } = useQuery({
+    queryKey: ['profiles'],
+    queryFn: async () => {
+      const result = await window.conveyor.profiles.getAll()
+      console.log('[Settings] Profiles loaded:', result)
+      return result
+    },
+  })
+
+  // Fetch selected profile data
+  const { data: selectedProfile, isLoading: isLoadingProfile } = useQuery({
+    queryKey: ['profiles', selectedProfileId],
+    queryFn: async () => {
+      const result = await window.conveyor.profiles.getById(selectedProfileId!)
+      console.log('[Settings] Profile loaded:', result)
+      return result
+    },
+    enabled: !!selectedProfileId && !isCreatingNew,
+  })
+
+  // Auto-select default or first profile when profiles load
   useEffect(() => {
-    loadProfiles()
-  }, [])
+    console.log('[Settings] useEffect - profiles:', profiles, 'isLoadingProfiles:', isLoadingProfiles, 'isCreatingNew:', isCreatingNew)
 
-  // Load profile data when selected
+    // Don't do anything while loading
+    if (isLoadingProfiles) {
+      return
+    }
+
+    if (profiles.length === 0) {
+      console.log('[Settings] No profiles found, showing creation mode')
+      setIsCreatingNew(true)
+      setSelectedProfileId(null)
+    } else if (!selectedProfileId && !isCreatingNew) {
+      const defaultProfile = profiles.find((p: CompanyProfile) => p.isDefault) || profiles[0]
+      console.log('[Settings] Auto-selecting profile:', defaultProfile)
+      setSelectedProfileId(defaultProfile.id)
+    }
+  }, [profiles, selectedProfileId, isCreatingNew, isLoadingProfiles])
+
+  // Update forms when selected profile changes
   useEffect(() => {
-    if (selectedProfileId) {
-      loadProfileData(selectedProfileId)
+    if (selectedProfile && !isCreatingNew) {
+      console.log('[Settings] Updating forms with profile data:', selectedProfile)
+      setCompanyForm({
+        profileName: selectedProfile.profileName || '',
+        businessName: selectedProfile.businessName || '',
+        vatNumber: selectedProfile.vatNumber || '',
+        address: selectedProfile.address || '',
+        zipCode: selectedProfile.zipCode || '',
+        city: selectedProfile.city || '',
+        phone: selectedProfile.phone || '',
+        email: selectedProfile.email || '',
+      })
+      setSmtpForm({
+        smtpHost: selectedProfile.smtpHost || '',
+        smtpPort: selectedProfile.smtpPort || 587,
+        smtpSecure: !!selectedProfile.smtpSecure,
+        smtpUser: selectedProfile.smtpUser || '',
+        smtpPassword: selectedProfile.smtpPassword || '',
+        smtpFromEmail: selectedProfile.smtpFromEmail || '',
+        smtpFromName: selectedProfile.smtpFromName || '',
+      })
     }
-  }, [selectedProfileId])
+  }, [selectedProfile, isCreatingNew])
 
-  const loadProfiles = async () => {
-    try {
-      setIsLoading(true)
-      const data = await window.conveyor.profiles.getAll()
-      setProfiles(data)
-
-      if (data.length === 0) {
-        // No profiles, enter creation mode
-        setIsCreatingNew(true)
-        setSelectedProfileId(null)
-        setSelectedProfile(null)
-      } else if (!selectedProfileId) {
-        // Select default or first profile
-        const defaultProfile = data.find((p: CompanyProfile) => p.isDefault) || data[0]
-        setSelectedProfileId(defaultProfile.id)
-      }
-    } catch (error) {
-      toast.error("Errore nel caricamento dei profili")
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const loadProfileData = async (id: number) => {
-    try {
-      setIsLoading(true)
-      const profile = await window.conveyor.profiles.getById(id)
-
-      if (profile) {
-        setSelectedProfile(profile)
-        setCompanyForm({
-          profileName: profile.profileName || "",
-          businessName: profile.businessName || "",
-          vatNumber: profile.vatNumber || "",
-          address: profile.address || "",
-          zipCode: profile.zipCode || "",
-          city: profile.city || "",
-          phone: profile.phone || "",
-          email: profile.email || "",
-        })
-        setSmtpForm({
-          smtpHost: profile.smtpHost || "",
-          smtpPort: profile.smtpPort || 587,
-          smtpSecure: profile.smtpSecure || false,
-          smtpUser: profile.smtpUser || "",
-          smtpPassword: profile.smtpPassword || "",
-          smtpFromEmail: profile.smtpFromEmail || "",
-          smtpFromName: profile.smtpFromName || "",
-        })
+  // Create profile mutation
+  const createMutation = useMutation({
+    mutationFn: (profileData: any) => window.conveyor.profiles.create(profileData),
+    onSuccess: (result) => {
+      if (result.success) {
+        toast.success('Profilo creato con successo')
+        queryClient.invalidateQueries({ queryKey: ['profiles'] })
+        setSelectedProfileId(result.id)
         setIsCreatingNew(false)
+        setWizardStep(1)
+      } else {
+        toast.error('Errore creazione profilo', {
+          description: result.error || 'Errore sconosciuto',
+        })
       }
-    } catch (error) {
-      toast.error("Errore nel caricamento del profilo")
-    } finally {
-      setIsLoading(false)
-    }
-  }
+    },
+    onError: (error: Error) => {
+      toast.error('Errore nel salvataggio', {
+        description: error.message,
+      })
+    },
+  })
+
+  // Update profile mutation
+  const updateMutation = useMutation({
+    mutationFn: (profileData: any) => window.conveyor.profiles.update(profileData),
+    onSuccess: (result) => {
+      if (result.success) {
+        toast.success('Profilo aggiornato con successo')
+        queryClient.invalidateQueries({ queryKey: ['profiles'] })
+        queryClient.invalidateQueries({ queryKey: ['profiles', selectedProfileId] })
+      } else {
+        toast.error('Errore aggiornamento profilo', {
+          description: result.error || 'Errore sconosciuto',
+        })
+      }
+    },
+    onError: (error: Error) => {
+      toast.error('Errore nel salvataggio', {
+        description: error.message,
+      })
+    },
+  })
+
+  // Delete profile mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => window.conveyor.profiles.delete(id),
+    onSuccess: (result) => {
+      if (result.success) {
+        toast.success('Profilo eliminato con successo')
+        queryClient.invalidateQueries({ queryKey: ['profiles'] })
+        setDeleteDialogOpen(false)
+        // After deletion, select first available profile or enter creation mode
+        const remainingProfiles = profiles.filter((p: CompanyProfile) => p.id !== selectedProfileId)
+        if (remainingProfiles.length > 0) {
+          setSelectedProfileId(remainingProfiles[0].id)
+        } else {
+          setIsCreatingNew(true)
+          setSelectedProfileId(null)
+        }
+      } else {
+        toast.error('Errore eliminazione', {
+          description: result.error || 'Errore sconosciuto',
+        })
+        setDeleteDialogOpen(false)
+      }
+    },
+    onError: (error: Error) => {
+      toast.error('Errore eliminazione', {
+        description: error.message,
+      })
+      setDeleteDialogOpen(false)
+    },
+  })
+
+  // Set default profile mutation
+  const setDefaultMutation = useMutation({
+    mutationFn: (id: number) => window.conveyor.profiles.setDefault(id),
+    onSuccess: (result) => {
+      if (result.success) {
+        toast.success('Profilo predefinito impostato')
+        queryClient.invalidateQueries({ queryKey: ['profiles'] })
+        queryClient.invalidateQueries({ queryKey: ['profiles', selectedProfileId] })
+      } else {
+        toast.error(result.error || "Errore nell'impostazione del profilo predefinito")
+      }
+    },
+    onError: () => {
+      toast.error("Errore nell'impostazione del profilo predefinito")
+    },
+  })
 
   const validateCompanyData = (): string | null => {
     if (!companyForm.profileName.trim()) {
-      return "Nome profilo obbligatorio"
+      return 'Nome profilo obbligatorio'
     }
     if (!companyForm.businessName.trim()) {
-      return "Ragione sociale obbligatoria"
+      return 'Ragione sociale obbligatoria'
     }
     if (!companyForm.vatNumber.trim()) {
-      return "P.IVA obbligatoria"
+      return 'P.IVA obbligatoria'
     }
     return null
   }
@@ -144,8 +226,8 @@ export default function Settings() {
   const handleWizardNext = () => {
     const validationError = validateCompanyData()
     if (validationError) {
-      toast.error("Errore validazione", {
-        description: validationError
+      toast.error('Errore validazione', {
+        description: validationError,
       })
       return
     }
@@ -160,137 +242,84 @@ export default function Settings() {
     // Validation
     const validationError = validateCompanyData()
     if (validationError) {
-      toast.error("Errore validazione", {
-        description: validationError
+      toast.error('Errore validazione', {
+        description: validationError,
       })
       return
     }
 
-    try {
-      setIsSaving(true)
+    // Prepare profile data with proper type conversions for SQLite
+    const profileData: any = {
+      ...companyForm,
+      isDefault: isCreatingNew && profiles.length === 0 ? 1 : 0, // First profile is default
+    }
 
-      const profileData = {
-        ...companyForm,
-        ...(skipSMTP ? {} : smtpForm),
-      }
+    // Add SMTP data if not skipping
+    if (!skipSMTP) {
+      profileData.smtpHost = smtpForm.smtpHost
+      profileData.smtpPort = smtpForm.smtpPort
+      profileData.smtpSecure = smtpForm.smtpSecure ? 1 : 0 // Convert boolean to number
+      profileData.smtpUser = smtpForm.smtpUser
+      profileData.smtpPassword = smtpForm.smtpPassword
+      profileData.smtpFromEmail = smtpForm.smtpFromEmail
+      profileData.smtpFromName = smtpForm.smtpFromName
+    }
 
-      if (isCreatingNew) {
-        const result = await window.conveyor.profiles.create(profileData)
-
-        if (result.success) {
-          toast.success("Profilo creato con successo")
-          await loadProfiles()
-          setSelectedProfileId(result.id)
-          setIsCreatingNew(false)
-          setWizardStep(1) // Reset wizard
-        } else {
-          toast.error("Errore creazione profilo", {
-            description: result.error || "Errore sconosciuto"
-          })
-        }
-      } else if (selectedProfileId) {
-        const result = await window.conveyor.profiles.update({
-          id: selectedProfileId,
-          ...profileData,
-        })
-
-        if (result.success) {
-          toast.success("Profilo aggiornato con successo")
-          await loadProfiles()
-          await loadProfileData(selectedProfileId)
-        } else {
-          toast.error("Errore aggiornamento profilo", {
-            description: result.error || "Errore sconosciuto"
-          })
-        }
-      }
-    } catch (error) {
-      console.error('Error saving profile:', error)
-      toast.error("Errore nel salvataggio", {
-        description: error instanceof Error ? error.message : "Errore imprevisto"
+    if (isCreatingNew) {
+      createMutation.mutate(profileData)
+    } else if (selectedProfileId) {
+      updateMutation.mutate({
+        id: selectedProfileId,
+        ...profileData,
       })
-    } finally {
-      setIsSaving(false)
     }
   }
 
   const handleNewProfile = () => {
     setIsCreatingNew(true)
     setSelectedProfileId(null)
-    setSelectedProfile(null)
-    setWizardStep(1) // Start from step 1
+    setWizardStep(1)
     setCompanyForm({
-      profileName: "",
-      businessName: "",
-      vatNumber: "",
-      address: "",
-      zipCode: "",
-      city: "",
-      phone: "",
-      email: "",
+      profileName: '',
+      businessName: '',
+      vatNumber: '',
+      address: '',
+      zipCode: '',
+      city: '',
+      phone: '',
+      email: '',
     })
     setSmtpForm({
-      smtpHost: "",
+      smtpHost: '',
       smtpPort: 587,
       smtpSecure: false,
-      smtpUser: "",
-      smtpPassword: "",
-      smtpFromEmail: "",
-      smtpFromName: "",
+      smtpUser: '',
+      smtpPassword: '',
+      smtpFromEmail: '',
+      smtpFromName: '',
     })
-    setActiveTab("company")
+    setActiveTab('company')
   }
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!selectedProfileId) return
-
-    try {
-      const result = await window.conveyor.profiles.delete(selectedProfileId)
-      if (result.success) {
-        toast.success("Profilo eliminato con successo")
-        setDeleteDialogOpen(false)
-        await loadProfiles()
-        // loadProfiles will handle setting isCreatingNew if no profiles remain
-      } else {
-        toast.error("Errore eliminazione", {
-          description: result.error || "Errore sconosciuto"
-        })
-        setDeleteDialogOpen(false)
-      }
-    } catch (error) {
-      console.error('Error deleting profile:', error)
-      toast.error("Errore eliminazione", {
-        description: error instanceof Error ? error.message : "Errore imprevisto"
-      })
-      setDeleteDialogOpen(false)
-    }
+    deleteMutation.mutate(selectedProfileId)
   }
 
-  const handleSetDefault = async () => {
+  const handleSetDefault = () => {
     if (!selectedProfileId) return
-
-    try {
-      const result = await window.conveyor.profiles.setDefault(selectedProfileId)
-      if (result.success) {
-        toast.success("Profilo predefinito impostato")
-        await loadProfiles()
-        await loadProfileData(selectedProfileId)
-      } else {
-        toast.error(result.error || "Errore nell'impostazione del profilo predefinito")
-      }
-    } catch (error) {
-      toast.error("Errore nell'impostazione del profilo predefinito")
-    }
+    setDefaultMutation.mutate(selectedProfileId)
   }
+
+  const isSaving = createMutation.isPending || updateMutation.isPending
+  const isLoading = isLoadingProfiles || isLoadingProfile
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Impostazioni</h1>
-        <p className="text-muted-foreground mt-2">
-          Gestisci i profili aziendali e le configurazioni SMTP
-        </p>
+        <p className="text-muted-foreground mt-2">Gestisci i profili aziendali e le configurazioni SMTP</p>
       </div>
 
       {/* Profile selector and actions - Only show if there are existing profiles */}
@@ -299,23 +328,21 @@ export default function Settings() {
           {isCreatingNew ? (
             <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
               <Plus className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <span className="font-medium text-blue-900 dark:text-blue-100">
-                Creazione Nuovo Profilo
-              </span>
+              <span className="font-medium text-blue-900 dark:text-blue-100">Creazione Nuovo Profilo</span>
             </div>
           ) : (
             <Select
-              value={selectedProfileId?.toString() || ""}
+              value={selectedProfileId?.toString() || ''}
               onValueChange={(value) => setSelectedProfileId(parseInt(value))}
             >
               <SelectTrigger className="w-[300px]">
                 <SelectValue placeholder="Seleziona profilo" />
               </SelectTrigger>
               <SelectContent>
-                {profiles.map((profile) => (
+                {profiles.map((profile: CompanyProfile) => (
                   <SelectItem key={profile.id} value={profile.id.toString()}>
                     {profile.profileName}
-                    {profile.isDefault && " ⭐"}
+                    {profile.isDefault && ' ⭐'}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -332,16 +359,12 @@ export default function Settings() {
           {selectedProfile && !isCreatingNew && (
             <>
               {!selectedProfile.isDefault && (
-                <Button onClick={handleSetDefault} variant="outline" size="sm">
+                <Button onClick={handleSetDefault} variant="outline" size="sm" disabled={setDefaultMutation.isPending}>
                   <Star className="h-4 w-4 mr-2" />
                   Imposta Predefinito
                 </Button>
               )}
-              <Button
-                onClick={() => setDeleteDialogOpen(true)}
-                variant="destructive"
-                size="sm"
-              >
+              <Button onClick={() => setDeleteDialogOpen(true)} variant="destructive" size="sm" disabled={deleteMutation.isPending}>
                 <Trash2 className="h-4 w-4 mr-2" />
                 Elimina
               </Button>
@@ -352,7 +375,7 @@ export default function Settings() {
             <Button
               onClick={() => {
                 setIsCreatingNew(false)
-                const defaultProfile = profiles.find((p) => p.isDefault) || profiles[0]
+                const defaultProfile = profiles.find((p: CompanyProfile) => p.isDefault) || profiles[0]
                 setSelectedProfileId(defaultProfile.id)
               }}
               variant="ghost"
@@ -371,23 +394,31 @@ export default function Settings() {
           {/* Wizard Progress */}
           <div className="mb-8">
             <div className="flex items-center justify-center gap-4">
-              <div className={`flex items-center gap-2 ${wizardStep === 1 ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
-                  wizardStep === 1
-                    ? 'border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-950'
-                    : 'border-gray-300 dark:border-gray-600'
-                }`}>
+              <div
+                className={`flex items-center gap-2 ${wizardStep === 1 ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400'}`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
+                    wizardStep === 1
+                      ? 'border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-950'
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}
+                >
                   1
                 </div>
                 <span className="font-medium">Dati Azienda</span>
               </div>
               <div className="w-12 h-0.5 bg-gray-300 dark:bg-gray-600"></div>
-              <div className={`flex items-center gap-2 ${wizardStep === 2 ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
-                  wizardStep === 2
-                    ? 'border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-950'
-                    : 'border-gray-300 dark:border-gray-600'
-                }`}>
+              <div
+                className={`flex items-center gap-2 ${wizardStep === 2 ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400'}`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
+                    wizardStep === 2
+                      ? 'border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-950'
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}
+                >
                   2
                 </div>
                 <span className="font-medium">Configurazione SMTP</span>
@@ -402,7 +433,9 @@ export default function Settings() {
                 <h2 className="text-2xl font-semibold mb-2">
                   {profiles.length === 0 ? 'Crea il tuo primo profilo aziendale' : 'Crea nuovo profilo aziendale'}
                 </h2>
-                <p className="text-muted-foreground">Inserisci i dati della tua azienda. Questi verranno utilizzati nei preventivi.</p>
+                <p className="text-muted-foreground">
+                  Inserisci i dati della tua azienda. Questi verranno utilizzati nei preventivi.
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4 mt-6">
@@ -412,9 +445,7 @@ export default function Settings() {
                     type="text"
                     className="w-full mt-1 px-3 py-2 border rounded-md"
                     value={companyForm.profileName}
-                    onChange={(e) =>
-                      setCompanyForm({ ...companyForm, profileName: e.target.value })
-                    }
+                    onChange={(e) => setCompanyForm({ ...companyForm, profileName: e.target.value })}
                     placeholder="Es: ACME Solutions"
                   />
                   <p className="text-xs text-muted-foreground mt-1">Nome identificativo del profilo</p>
@@ -426,9 +457,7 @@ export default function Settings() {
                     type="text"
                     className="w-full mt-1 px-3 py-2 border rounded-md"
                     value={companyForm.businessName}
-                    onChange={(e) =>
-                      setCompanyForm({ ...companyForm, businessName: e.target.value })
-                    }
+                    onChange={(e) => setCompanyForm({ ...companyForm, businessName: e.target.value })}
                     placeholder="Es: ACME Solutions S.r.l."
                   />
                 </div>
@@ -439,9 +468,7 @@ export default function Settings() {
                     type="text"
                     className="w-full mt-1 px-3 py-2 border rounded-md"
                     value={companyForm.vatNumber}
-                    onChange={(e) =>
-                      setCompanyForm({ ...companyForm, vatNumber: e.target.value })
-                    }
+                    onChange={(e) => setCompanyForm({ ...companyForm, vatNumber: e.target.value })}
                     placeholder="IT12345678901"
                   />
                 </div>
@@ -452,9 +479,7 @@ export default function Settings() {
                     type="text"
                     className="w-full mt-1 px-3 py-2 border rounded-md"
                     value={companyForm.address}
-                    onChange={(e) =>
-                      setCompanyForm({ ...companyForm, address: e.target.value })
-                    }
+                    onChange={(e) => setCompanyForm({ ...companyForm, address: e.target.value })}
                     placeholder="Via Roma 123"
                   />
                 </div>
@@ -465,9 +490,7 @@ export default function Settings() {
                     type="text"
                     className="w-full mt-1 px-3 py-2 border rounded-md"
                     value={companyForm.zipCode}
-                    onChange={(e) =>
-                      setCompanyForm({ ...companyForm, zipCode: e.target.value })
-                    }
+                    onChange={(e) => setCompanyForm({ ...companyForm, zipCode: e.target.value })}
                     placeholder="00100"
                   />
                 </div>
@@ -478,9 +501,7 @@ export default function Settings() {
                     type="text"
                     className="w-full mt-1 px-3 py-2 border rounded-md"
                     value={companyForm.city}
-                    onChange={(e) =>
-                      setCompanyForm({ ...companyForm, city: e.target.value })
-                    }
+                    onChange={(e) => setCompanyForm({ ...companyForm, city: e.target.value })}
                     placeholder="Roma"
                   />
                 </div>
@@ -491,9 +512,7 @@ export default function Settings() {
                     type="text"
                     className="w-full mt-1 px-3 py-2 border rounded-md"
                     value={companyForm.phone}
-                    onChange={(e) =>
-                      setCompanyForm({ ...companyForm, phone: e.target.value })
-                    }
+                    onChange={(e) => setCompanyForm({ ...companyForm, phone: e.target.value })}
                     placeholder="+39 06 1234567"
                   />
                 </div>
@@ -504,18 +523,14 @@ export default function Settings() {
                     type="email"
                     className="w-full mt-1 px-3 py-2 border rounded-md"
                     value={companyForm.email}
-                    onChange={(e) =>
-                      setCompanyForm({ ...companyForm, email: e.target.value })
-                    }
+                    onChange={(e) => setCompanyForm({ ...companyForm, email: e.target.value })}
                     placeholder="info@acme.it"
                   />
                 </div>
               </div>
 
               <div className="flex justify-end gap-3 mt-8 pt-6 border-t">
-                <Button onClick={handleWizardNext}>
-                  Avanti - Configura SMTP
-                </Button>
+                <Button onClick={handleWizardNext}>Avanti - Configura SMTP</Button>
               </div>
             </div>
           )}
@@ -526,7 +541,8 @@ export default function Settings() {
               <div>
                 <h2 className="text-2xl font-semibold mb-2">Configurazione SMTP (Opzionale)</h2>
                 <p className="text-muted-foreground">
-                  Configura il server SMTP per l'invio automatico delle email. Puoi saltare questo passaggio e configurarlo in seguito.
+                  Configura il server SMTP per l'invio automatico delle email. Puoi saltare questo passaggio e
+                  configurarlo in seguito.
                 </p>
               </div>
 
@@ -537,9 +553,7 @@ export default function Settings() {
                     type="text"
                     className="w-full mt-1 px-3 py-2 border rounded-md"
                     value={smtpForm.smtpHost}
-                    onChange={(e) =>
-                      setSmtpForm({ ...smtpForm, smtpHost: e.target.value })
-                    }
+                    onChange={(e) => setSmtpForm({ ...smtpForm, smtpHost: e.target.value })}
                     placeholder="smtp.gmail.com"
                   />
                 </div>
@@ -550,9 +564,7 @@ export default function Settings() {
                     type="number"
                     className="w-full mt-1 px-3 py-2 border rounded-md"
                     value={smtpForm.smtpPort}
-                    onChange={(e) =>
-                      setSmtpForm({ ...smtpForm, smtpPort: parseInt(e.target.value) })
-                    }
+                    onChange={(e) => setSmtpForm({ ...smtpForm, smtpPort: parseInt(e.target.value) })}
                   />
                 </div>
 
@@ -561,9 +573,7 @@ export default function Settings() {
                     <input
                       type="checkbox"
                       checked={smtpForm.smtpSecure}
-                      onChange={(e) =>
-                        setSmtpForm({ ...smtpForm, smtpSecure: e.target.checked })
-                      }
+                      onChange={(e) => setSmtpForm({ ...smtpForm, smtpSecure: e.target.checked })}
                     />
                     <span className="text-sm font-medium">SSL/TLS</span>
                   </label>
@@ -575,9 +585,7 @@ export default function Settings() {
                     type="text"
                     className="w-full mt-1 px-3 py-2 border rounded-md"
                     value={smtpForm.smtpUser}
-                    onChange={(e) =>
-                      setSmtpForm({ ...smtpForm, smtpUser: e.target.value })
-                    }
+                    onChange={(e) => setSmtpForm({ ...smtpForm, smtpUser: e.target.value })}
                   />
                 </div>
 
@@ -587,9 +595,7 @@ export default function Settings() {
                     type="password"
                     className="w-full mt-1 px-3 py-2 border rounded-md"
                     value={smtpForm.smtpPassword}
-                    onChange={(e) =>
-                      setSmtpForm({ ...smtpForm, smtpPassword: e.target.value })
-                    }
+                    onChange={(e) => setSmtpForm({ ...smtpForm, smtpPassword: e.target.value })}
                   />
                 </div>
 
@@ -599,9 +605,7 @@ export default function Settings() {
                     type="email"
                     className="w-full mt-1 px-3 py-2 border rounded-md"
                     value={smtpForm.smtpFromEmail}
-                    onChange={(e) =>
-                      setSmtpForm({ ...smtpForm, smtpFromEmail: e.target.value })
-                    }
+                    onChange={(e) => setSmtpForm({ ...smtpForm, smtpFromEmail: e.target.value })}
                   />
                 </div>
 
@@ -611,9 +615,7 @@ export default function Settings() {
                     type="text"
                     className="w-full mt-1 px-3 py-2 border rounded-md"
                     value={smtpForm.smtpFromName}
-                    onChange={(e) =>
-                      setSmtpForm({ ...smtpForm, smtpFromName: e.target.value })
-                    }
+                    onChange={(e) => setSmtpForm({ ...smtpForm, smtpFromName: e.target.value })}
                     placeholder="ACME Solutions"
                   />
                 </div>
@@ -628,7 +630,7 @@ export default function Settings() {
                     Inserisci in Seguito
                   </Button>
                   <Button onClick={() => handleSave(false)} disabled={isSaving}>
-                    {isSaving ? "Salvataggio..." : "Completa Configurazione"}
+                    {isSaving ? 'Salvataggio...' : 'Completa Configurazione'}
                   </Button>
                 </div>
               </div>
@@ -642,17 +644,17 @@ export default function Settings() {
           <Card className="w-[200px] h-fit p-2">
             <div className="flex flex-col gap-1">
               <Button
-                variant={activeTab === "company" ? "secondary" : "ghost"}
+                variant={activeTab === 'company' ? 'secondary' : 'ghost'}
                 className="justify-start"
-                onClick={() => setActiveTab("company")}
+                onClick={() => setActiveTab('company')}
               >
                 <Building2 className="h-4 w-4 mr-2" />
                 Dati Azienda
               </Button>
               <Button
-                variant={activeTab === "smtp" ? "secondary" : "ghost"}
+                variant={activeTab === 'smtp' ? 'secondary' : 'ghost'}
                 className="justify-start"
-                onClick={() => setActiveTab("smtp")}
+                onClick={() => setActiveTab('smtp')}
               >
                 <Mail className="h-4 w-4 mr-2" />
                 SMTP
@@ -668,222 +670,192 @@ export default function Settings() {
               </div>
             ) : (
               <>
-              {activeTab === "company" && (
-                <div className="space-y-4">
-                  <div>
-                    <h2 className="text-lg font-semibold mb-4">Informazioni Azienda</h2>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-2">
-                      <label className="text-sm font-medium">Nome Profilo *</label>
-                      <input
-                        type="text"
-                        className="w-full mt-1 px-3 py-2 border rounded-md"
-                        value={companyForm.profileName}
-                        onChange={(e) =>
-                          setCompanyForm({ ...companyForm, profileName: e.target.value })
-                        }
-                        placeholder="Es: ACME Solutions"
-                      />
-                    </div>
-
-                    <div className="col-span-2">
-                      <label className="text-sm font-medium">Ragione Sociale *</label>
-                      <input
-                        type="text"
-                        className="w-full mt-1 px-3 py-2 border rounded-md"
-                        value={companyForm.businessName}
-                        onChange={(e) =>
-                          setCompanyForm({ ...companyForm, businessName: e.target.value })
-                        }
-                      />
-                    </div>
-
-                    <div className="col-span-2">
-                      <label className="text-sm font-medium">P.IVA *</label>
-                      <input
-                        type="text"
-                        className="w-full mt-1 px-3 py-2 border rounded-md"
-                        value={companyForm.vatNumber}
-                        onChange={(e) =>
-                          setCompanyForm({ ...companyForm, vatNumber: e.target.value })
-                        }
-                      />
-                    </div>
-
-                    <div className="col-span-2">
-                      <label className="text-sm font-medium">Indirizzo</label>
-                      <input
-                        type="text"
-                        className="w-full mt-1 px-3 py-2 border rounded-md"
-                        value={companyForm.address}
-                        onChange={(e) =>
-                          setCompanyForm({ ...companyForm, address: e.target.value })
-                        }
-                      />
-                    </div>
-
+                {activeTab === 'company' && (
+                  <div className="space-y-4">
                     <div>
-                      <label className="text-sm font-medium">CAP</label>
-                      <input
-                        type="text"
-                        className="w-full mt-1 px-3 py-2 border rounded-md"
-                        value={companyForm.zipCode}
-                        onChange={(e) =>
-                          setCompanyForm({ ...companyForm, zipCode: e.target.value })
-                        }
-                      />
+                      <h2 className="text-lg font-semibold mb-4">Informazioni Azienda</h2>
                     </div>
 
-                    <div>
-                      <label className="text-sm font-medium">Città</label>
-                      <input
-                        type="text"
-                        className="w-full mt-1 px-3 py-2 border rounded-md"
-                        value={companyForm.city}
-                        onChange={(e) =>
-                          setCompanyForm({ ...companyForm, city: e.target.value })
-                        }
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium">Telefono</label>
-                      <input
-                        type="text"
-                        className="w-full mt-1 px-3 py-2 border rounded-md"
-                        value={companyForm.phone}
-                        onChange={(e) =>
-                          setCompanyForm({ ...companyForm, phone: e.target.value })
-                        }
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium">Email</label>
-                      <input
-                        type="email"
-                        className="w-full mt-1 px-3 py-2 border rounded-md"
-                        value={companyForm.email}
-                        onChange={(e) =>
-                          setCompanyForm({ ...companyForm, email: e.target.value })
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === "smtp" && (
-                <div className="space-y-4">
-                  <div>
-                    <h2 className="text-lg font-semibold mb-1">Configurazione SMTP</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Configura il server SMTP per l'invio delle email (funzionalità futura)
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-2">
-                      <label className="text-sm font-medium">Host SMTP</label>
-                      <input
-                        type="text"
-                        className="w-full mt-1 px-3 py-2 border rounded-md"
-                        value={smtpForm.smtpHost}
-                        onChange={(e) =>
-                          setSmtpForm({ ...smtpForm, smtpHost: e.target.value })
-                        }
-                        placeholder="smtp.gmail.com"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium">Porta</label>
-                      <input
-                        type="number"
-                        className="w-full mt-1 px-3 py-2 border rounded-md"
-                        value={smtpForm.smtpPort}
-                        onChange={(e) =>
-                          setSmtpForm({ ...smtpForm, smtpPort: parseInt(e.target.value) })
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-end">
-                      <label className="flex items-center gap-2">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="col-span-2">
+                        <label className="text-sm font-medium">Nome Profilo *</label>
                         <input
-                          type="checkbox"
-                          checked={smtpForm.smtpSecure}
-                          onChange={(e) =>
-                            setSmtpForm({ ...smtpForm, smtpSecure: e.target.checked })
-                          }
+                          type="text"
+                          className="w-full mt-1 px-3 py-2 border rounded-md"
+                          value={companyForm.profileName}
+                          onChange={(e) => setCompanyForm({ ...companyForm, profileName: e.target.value })}
+                          placeholder="Es: ACME Solutions"
                         />
-                        <span className="text-sm font-medium">SSL/TLS</span>
-                      </label>
-                    </div>
+                      </div>
 
-                    <div className="col-span-2">
-                      <label className="text-sm font-medium">Username</label>
-                      <input
-                        type="text"
-                        className="w-full mt-1 px-3 py-2 border rounded-md"
-                        value={smtpForm.smtpUser}
-                        onChange={(e) =>
-                          setSmtpForm({ ...smtpForm, smtpUser: e.target.value })
-                        }
-                      />
-                    </div>
+                      <div className="col-span-2">
+                        <label className="text-sm font-medium">Ragione Sociale *</label>
+                        <input
+                          type="text"
+                          className="w-full mt-1 px-3 py-2 border rounded-md"
+                          value={companyForm.businessName}
+                          onChange={(e) => setCompanyForm({ ...companyForm, businessName: e.target.value })}
+                        />
+                      </div>
 
-                    <div className="col-span-2">
-                      <label className="text-sm font-medium">Password</label>
-                      <input
-                        type="password"
-                        className="w-full mt-1 px-3 py-2 border rounded-md"
-                        value={smtpForm.smtpPassword}
-                        onChange={(e) =>
-                          setSmtpForm({ ...smtpForm, smtpPassword: e.target.value })
-                        }
-                      />
-                    </div>
+                      <div className="col-span-2">
+                        <label className="text-sm font-medium">P.IVA *</label>
+                        <input
+                          type="text"
+                          className="w-full mt-1 px-3 py-2 border rounded-md"
+                          value={companyForm.vatNumber}
+                          onChange={(e) => setCompanyForm({ ...companyForm, vatNumber: e.target.value })}
+                        />
+                      </div>
 
-                    <div className="col-span-2">
-                      <label className="text-sm font-medium">Email Mittente</label>
-                      <input
-                        type="email"
-                        className="w-full mt-1 px-3 py-2 border rounded-md"
-                        value={smtpForm.smtpFromEmail}
-                        onChange={(e) =>
-                          setSmtpForm({ ...smtpForm, smtpFromEmail: e.target.value })
-                        }
-                      />
-                    </div>
+                      <div className="col-span-2">
+                        <label className="text-sm font-medium">Indirizzo</label>
+                        <input
+                          type="text"
+                          className="w-full mt-1 px-3 py-2 border rounded-md"
+                          value={companyForm.address}
+                          onChange={(e) => setCompanyForm({ ...companyForm, address: e.target.value })}
+                        />
+                      </div>
 
-                    <div className="col-span-2">
-                      <label className="text-sm font-medium">Nome Mittente</label>
-                      <input
-                        type="text"
-                        className="w-full mt-1 px-3 py-2 border rounded-md"
-                        value={smtpForm.smtpFromName}
-                        onChange={(e) =>
-                          setSmtpForm({ ...smtpForm, smtpFromName: e.target.value })
-                        }
-                        placeholder="ACME Solutions"
-                      />
+                      <div>
+                        <label className="text-sm font-medium">CAP</label>
+                        <input
+                          type="text"
+                          className="w-full mt-1 px-3 py-2 border rounded-md"
+                          value={companyForm.zipCode}
+                          onChange={(e) => setCompanyForm({ ...companyForm, zipCode: e.target.value })}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium">Città</label>
+                        <input
+                          type="text"
+                          className="w-full mt-1 px-3 py-2 border rounded-md"
+                          value={companyForm.city}
+                          onChange={(e) => setCompanyForm({ ...companyForm, city: e.target.value })}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium">Telefono</label>
+                        <input
+                          type="text"
+                          className="w-full mt-1 px-3 py-2 border rounded-md"
+                          value={companyForm.phone}
+                          onChange={(e) => setCompanyForm({ ...companyForm, phone: e.target.value })}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium">Email</label>
+                        <input
+                          type="email"
+                          className="w-full mt-1 px-3 py-2 border rounded-md"
+                          value={companyForm.email}
+                          onChange={(e) => setCompanyForm({ ...companyForm, email: e.target.value })}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Save button */}
-              <div className="mt-6 flex justify-end">
-                <Button onClick={() => handleSave(false)} disabled={isSaving}>
-                  {isSaving ? "Salvataggio..." : "Salva Modifiche"}
-                </Button>
-              </div>
-            </>
-          )}
-        </Card>
+                {activeTab === 'smtp' && (
+                  <div className="space-y-4">
+                    <div>
+                      <h2 className="text-lg font-semibold mb-1">Configurazione SMTP</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Configura il server SMTP per l'invio delle email (funzionalità futura)
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="col-span-2">
+                        <label className="text-sm font-medium">Host SMTP</label>
+                        <input
+                          type="text"
+                          className="w-full mt-1 px-3 py-2 border rounded-md"
+                          value={smtpForm.smtpHost}
+                          onChange={(e) => setSmtpForm({ ...smtpForm, smtpHost: e.target.value })}
+                          placeholder="smtp.gmail.com"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium">Porta</label>
+                        <input
+                          type="number"
+                          className="w-full mt-1 px-3 py-2 border rounded-md"
+                          value={smtpForm.smtpPort}
+                          onChange={(e) => setSmtpForm({ ...smtpForm, smtpPort: parseInt(e.target.value) })}
+                        />
+                      </div>
+
+                      <div className="flex items-end">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={smtpForm.smtpSecure}
+                            onChange={(e) => setSmtpForm({ ...smtpForm, smtpSecure: e.target.checked })}
+                          />
+                          <span className="text-sm font-medium">SSL/TLS</span>
+                        </label>
+                      </div>
+
+                      <div className="col-span-2">
+                        <label className="text-sm font-medium">Username</label>
+                        <input
+                          type="text"
+                          className="w-full mt-1 px-3 py-2 border rounded-md"
+                          value={smtpForm.smtpUser}
+                          onChange={(e) => setSmtpForm({ ...smtpForm, smtpUser: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="col-span-2">
+                        <label className="text-sm font-medium">Password</label>
+                        <input
+                          type="password"
+                          className="w-full mt-1 px-3 py-2 border rounded-md"
+                          value={smtpForm.smtpPassword}
+                          onChange={(e) => setSmtpForm({ ...smtpForm, smtpPassword: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="col-span-2">
+                        <label className="text-sm font-medium">Email Mittente</label>
+                        <input
+                          type="email"
+                          className="w-full mt-1 px-3 py-2 border rounded-md"
+                          value={smtpForm.smtpFromEmail}
+                          onChange={(e) => setSmtpForm({ ...smtpForm, smtpFromEmail: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="col-span-2">
+                        <label className="text-sm font-medium">Nome Mittente</label>
+                        <input
+                          type="text"
+                          className="w-full mt-1 px-3 py-2 border rounded-md"
+                          value={smtpForm.smtpFromName}
+                          onChange={(e) => setSmtpForm({ ...smtpForm, smtpFromName: e.target.value })}
+                          placeholder="ACME Solutions"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Save button */}
+                <div className="mt-6 flex justify-end">
+                  <Button onClick={() => handleSave(false)} disabled={isSaving}>
+                    {isSaving ? 'Salvataggio...' : 'Salva Modifiche'}
+                  </Button>
+                </div>
+              </>
+            )}
+          </Card>
         </div>
       )}
 
@@ -893,7 +865,8 @@ export default function Settings() {
           <AlertDialogHeader>
             <AlertDialogTitle>Eliminare il profilo "{selectedProfile?.profileName}"?</AlertDialogTitle>
             <AlertDialogDescription>
-              Questa azione non può essere annullata. Il profilo e tutti i suoi dati (inclusa la configurazione SMTP) verranno eliminati definitivamente.
+              Questa azione non può essere annullata. Il profilo e tutti i suoi dati (inclusa la configurazione SMTP)
+              verranno eliminati definitivamente.
               {profiles.length === 1 && (
                 <span className="block mt-2 font-medium text-orange-600 dark:text-orange-400">
                   Attenzione: Stai eliminando l'ultimo profilo. Dovrai crearne uno nuovo per utilizzare l'applicazione.

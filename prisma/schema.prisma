@@ -1,0 +1,136 @@
+// Prisma Schema for Quotify - Electron Desktop App
+// Database: SQLite (perfect for desktop apps)
+
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "windows"]
+}
+
+generator zod {
+  provider = "zod-prisma-types"
+  output   = "../lib/generated/zod"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Customers Model
+model Customer {
+  id           Int      @id @default(autoincrement())
+  businessName String
+  email        String
+  vatNumber    String
+  address      String?
+  zipCode      String?
+  city         String?
+  createdAt    Int      @default(0)
+  updatedAt    Int      @default(0)
+
+  quotes       Quote[]
+
+  @@map("customers")
+}
+
+// Products Model
+model Product {
+  id          Int      @id @default(autoincrement())
+  code        String
+  description String?
+  measure     String?
+  price       Float
+  createdAt   Int      @default(0)
+  updatedAt   Int      @default(0)
+
+  quoteItems  QuoteItem[]
+
+  @@map("products")
+}
+
+// Company Profiles Model
+model CompanyProfile {
+  id            Int      @id @default(autoincrement())
+  profileName   String   @unique
+  businessName  String
+  vatNumber     String
+  address       String?
+  zipCode       String?
+  city          String?
+  phone         String?
+  email         String?
+  smtpHost      String?
+  smtpPort      Int?     @default(587)
+  smtpSecure    Int?     @default(0)
+  smtpUser      String?
+  smtpPassword  String?
+  smtpFromEmail String?
+  smtpFromName  String?
+  isDefault     Int      @default(0)
+  createdAt     Int      @default(0)
+  updatedAt     Int      @default(0)
+
+  quotes        Quote[]
+
+  @@map("company_profiles")
+}
+
+// Quotes Model
+model Quote {
+  id                   Int      @id @default(autoincrement())
+  number               Int
+  revision             Int      @default(0)
+  date                 String
+  customerId           Int?
+  customerBusinessName String
+  customerEmail        String?
+  customerVatNumber    String?
+  customerAddress      String?
+  customerZipCode      String?
+  customerCity         String?
+  subtotal             Float
+  totalVat             Float
+  total                Float
+  notes                String?
+  metadata             String?
+  status               String   @default("draft")
+  companyProfileId     Int?
+  createdAt            Int      @default(0)
+  updatedAt            Int      @default(0)
+
+  customer             Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  companyProfile       CompanyProfile?  @relation(fields: [companyProfileId], references: [id], onDelete: SetNull)
+  items                QuoteItem[]
+
+  @@unique([number, revision])
+  @@map("quotes")
+}
+
+// Quote Items Model
+model QuoteItem {
+  id             Int      @id @default(autoincrement())
+  quoteId        Int
+  ordering       Int      @default(0)
+  productId      Int?
+  code           String
+  measure        String?
+  description    String?
+  unit           String
+  quantity       Float
+  unitPrice      Float
+  lineTotal      Float
+  discount1      Float   @default(0)
+  discount2      Float   @default(0)
+  discount3      Float   @default(0)
+  netUnitPrice   Float
+  netLineTotal   Float
+  vatRate        Float?   @default(22.0)
+  vatAmount      Float
+  createdAt      Int?      @default(0)
+  updatedAt      Int?      @default(0)
+
+  quote          Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  product        Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@map("quote_items")
+}

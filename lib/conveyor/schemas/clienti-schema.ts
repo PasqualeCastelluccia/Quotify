@@ -39,10 +39,7 @@ export const clientiIpcSchema = {
     return: clienteSchema.nullable(),
   },
   'clienti:update': {
-    args: z.tuple([
-      z.number(),
-      clienteSchema.omit({ id: true, createdAt: true, updatedAt: true }).partial(),
-    ]),
+    args: z.tuple([z.number(), clienteSchema.omit({ id: true, createdAt: true, updatedAt: true }).partial()]),
     return: successResponseSchema,
   },
   'clienti:delete': {

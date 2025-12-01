@@ -1,20 +1,21 @@
 import { BrowserWindow, app } from 'electron'
 import path from 'path'
 import fs from 'fs'
-import { db } from '@/lib/database/db'
+import { prisma } from '@/lib/database/prisma'
 
-interface PreventivoData {
-  preventivo: {
+interface QuoteData {
+  quote: {
     id: number
-    numero: string
-    data: string
+    number: number
+    revision: number
+    date: string
     companyProfileId?: number
-    clienteBusinessName: string
-    clienteEmail?: string
-    clienteVatNumber?: string
-    clienteAddress?: string
-    clienteZipCode?: string
-    clienteCity?: string
+    customerBusinessName: string
+    customerEmail?: string
+    customerVatNumber?: string
+    customerAddress?: string
+    customerZipCode?: string
+    customerCity?: string
     subtotal: number
     totalVat: number
     total: number
@@ -49,7 +50,6 @@ interface CompanyProfile {
   email?: string
 }
 
-// Fallback company data if no profile is found
 const DEFAULT_COMPANY_DATA = {
   name: 'ACME Solutions S.r.l.',
   address: 'Via Roma 123',
@@ -76,12 +76,11 @@ function calculateLineTotal(quantity: number, unitPrice: number): number {
   return quantity * unitPrice
 }
 
-function generateItemsHTML(items: PreventivoData['items']): string {
+function generateItemsHTML(items: QuoteData['items']): string {
   return items
-    .map(
-      (item) => {
-        const lineTotal = calculateLineTotal(item.quantity, item.unitPrice)
-        return `
+    .map((item) => {
+      const lineTotal = calculateLineTotal(item.quantity, item.unitPrice)
+      return `
     <tr>
       <td class="item-code">${item.code}</td>
       <td>${item.measure || '-'}</td>
@@ -97,8 +96,7 @@ function generateItemsHTML(items: PreventivoData['items']): string {
       <td class="right"><strong>€ ${formatCurrency(item.netLineTotal)}</strong></td>
     </tr>
   `
-      }
-    )
+    })
     .join('')
 }
 
@@ -123,24 +121,14 @@ function generateMetadataSection(metadata?: string): string {
   `
 }
 
-function getStatusLabel(status: string): string {
-  const labels: Record<string, string> = {
-    draft: 'Bozza',
-    sent: 'Inviato',
-    accepted: 'Accettato',
-    rejected: 'Rifiutato',
-  }
-  return labels[status] || status
-}
-
-export async function generatePreventivoPDF(data: PreventivoData): Promise<string> {
-  // Get company profile from database
+async function renderQuoteHTML(data: QuoteData): Promise<string> {
   let companyData = DEFAULT_COMPANY_DATA
 
-  if (data.preventivo.companyProfileId) {
+  if (data.quote.companyProfileId) {
     try {
-      const stmt = db.prepare('SELECT * FROM company_profiles WHERE id = ?')
-      const profile = stmt.get(data.preventivo.companyProfileId) as CompanyProfile | undefined
+      const profile = await prisma.companyProfile.findUnique({
+        where: { id: data.quote.companyProfileId },
+      })
 
       if (profile) {
         const companyCity = [profile.zipCode, profile.city].filter(Boolean).join(' ')
@@ -155,13 +143,12 @@ export async function generatePreventivoPDF(data: PreventivoData): Promise<strin
       }
     } catch (error) {
       console.error('Error loading company profile:', error)
-      // Continue with default data
     }
   } else {
-    // Try to get default profile if no profile specified
     try {
-      const stmt = db.prepare('SELECT * FROM company_profiles WHERE isDefault = 1 LIMIT 1')
-      const profile = stmt.get() as CompanyProfile | undefined
+      const profile = await prisma.companyProfile.findFirst({
+        where: { isDefault: 1 },
+      })
 
       if (profile) {
         const companyCity = [profile.zipCode, profile.city].filter(Boolean).join(' ')
@@ -176,23 +163,19 @@ export async function generatePreventivoPDF(data: PreventivoData): Promise<strin
       }
     } catch (error) {
       console.error('Error loading default profile:', error)
-      // Continue with default data
     }
   }
 
-let templatePath: string
+  let templatePath: string
 
-if (app.isPackaged) {
-  // In produzione: resources/lib/preventivo.html
-  templatePath = path.join(process.resourcesPath, 'lib', 'preventivo.html')
-} else {
-  // In sviluppo
-  templatePath = path.join(__dirname, '../..', 'lib', 'templates', 'preventivo.html')
-}
+  if (app.isPackaged) {
+    templatePath = path.join(process.resourcesPath, 'lib', 'preventivo.html')
+  } else {
+    templatePath = path.join(__dirname, '../..', 'lib', 'templates', 'preventivo.html')
+  }
 
-// Debug (opzionale, rimuovi dopo il test)
-console.log('🔍 Template path:', templatePath)
-console.log('📁 Template exists:', fs.existsSync(templatePath))
+  console.log('🔍 Template path:', templatePath)
+  console.log('📁 Template exists:', fs.existsSync(templatePath))
 
   if (!fs.existsSync(templatePath)) {
     throw new Error(`Template not found at: ${templatePath}`)
@@ -200,9 +183,7 @@ console.log('📁 Template exists:', fs.existsSync(templatePath))
 
   let htmlTemplate = fs.readFileSync(templatePath, 'utf-8')
 
-  const clientCity = [data.preventivo.clienteZipCode, data.preventivo.clienteCity]
-    .filter(Boolean)
-    .join(' ')
+  const customerCity = [data.quote.customerZipCode, data.quote.customerCity].filter(Boolean).join(' ')
 
   htmlTemplate = htmlTemplate
     .replace(/{{COMPANY_NAME}}/g, companyData.name)
@@ -211,20 +192,27 @@ console.log('📁 Template exists:', fs.existsSync(templatePath))
     .replace(/{{COMPANY_VAT}}/g, companyData.vat)
     .replace(/{{COMPANY_PHONE}}/g, companyData.phone)
     .replace(/{{COMPANY_EMAIL}}/g, companyData.email)
-    .replace(/{{NUMERO}}/g, data.preventivo.numero)
-    .replace(/{{DATA}}/g, formatDate(data.preventivo.data))
-    .replace(/{{CLIENTE_NAME}}/g, data.preventivo.clienteBusinessName)
-    .replace(/{{CLIENTE_ADDRESS}}/g, data.preventivo.clienteAddress || '-')
-    .replace(/{{CLIENTE_CITY}}/g, clientCity || '-')
-    .replace(/{{CLIENTE_EMAIL}}/g, data.preventivo.clienteEmail || '-')
-    .replace(/{{CLIENTE_VAT}}/g, data.preventivo.clienteVatNumber || '-')
+    .replace(/{{NUMERO}}/g, String(data.quote.number))
+    .replace(/{{REVISIONE}}/g, String(data.quote.revision))
+    .replace(/{{DATA}}/g, formatDate(data.quote.date))
+    .replace(/{{CLIENTE_NAME}}/g, data.quote.customerBusinessName)
+    .replace(/{{CLIENTE_ADDRESS}}/g, data.quote.customerAddress || '-')
+    .replace(/{{CLIENTE_CITY}}/g, customerCity || '-')
+    .replace(/{{CLIENTE_EMAIL}}/g, data.quote.customerEmail || '-')
+    .replace(/{{CLIENTE_VAT}}/g, data.quote.customerVatNumber || '-')
     .replace(/{{ITEMS}}/g, generateItemsHTML(data.items))
-    .replace(/{{SUBTOTAL}}/g, formatCurrency(data.preventivo.subtotal))
-    .replace(/{{VAT}}/g, formatCurrency(data.preventivo.totalVat))
-    .replace(/{{TOTAL}}/g, formatCurrency(data.preventivo.total))
-    .replace(/{{NOTES_SECTION}}/g, generateNotesSection(data.preventivo.notes))
-    .replace(/{{METADATA_SECTION}}/g, generateMetadataSection(data.preventivo.metadata))
+    .replace(/{{SUBTOTAL}}/g, formatCurrency(data.quote.subtotal))
+    .replace(/{{VAT}}/g, formatCurrency(data.quote.totalVat))
+    .replace(/{{TOTAL}}/g, formatCurrency(data.quote.total))
+    .replace(/{{NOTES_SECTION}}/g, generateNotesSection(data.quote.notes))
+    .replace(/{{METADATA_SECTION}}/g, generateMetadataSection(data.quote.metadata))
     .replace(/{{GENERATED_DATE}}/g, new Date().toLocaleString('it-IT'))
+
+  return htmlTemplate
+}
+
+export async function generateQuotePDF(data: QuoteData): Promise<string> {
+  const htmlTemplate = await renderQuoteHTML(data)
 
   const win = new BrowserWindow({
     show: false,
@@ -256,10 +244,15 @@ console.log('📁 Template exists:', fs.existsSync(templatePath))
     fs.mkdirSync(pdfsDir, { recursive: true })
   }
 
-  const fileName = `${data.preventivo.numero.replace(/[^a-zA-Z0-9-]/g, '_')}.pdf`
+  const fileName = `preventivo_${data.quote.number}_rev${data.quote.revision}.pdf`
   const outputPath = path.join(pdfsDir, fileName)
 
   fs.writeFileSync(outputPath, pdfData)
 
   return outputPath
 }
+
+export const generatePreventivoPDF = generateQuotePDF
+
+// Export HTML rendering function for preview
+export { renderQuoteHTML as generateQuoteHTML }

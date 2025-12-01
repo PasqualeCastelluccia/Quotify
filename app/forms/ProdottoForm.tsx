@@ -1,45 +1,39 @@
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { prodottoSchema, type ProdottoFormData } from "@/lib/validations/prodotto"
-import { Button } from "@/app/components/ui/button"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/app/components/ui/form"
-import { Input } from "@/app/components/ui/input"
-import { Textarea } from "@/app/components/ui/textarea"
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { ProductSchema, Product } from '@/app/types/product'
+import { Button } from '@/app/components/ui/button'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/app/components/ui/form'
+import { Input } from '@/app/components/ui/input'
+import { Textarea } from '@/app/components/ui/textarea'
 
 interface ProdottoFormProps {
-  onSubmit: (data: ProdottoFormData) => void
-  defaultValues?: Partial<ProdottoFormData>
+  onSubmit: (data: Product) => void
+  defaultValues?: Partial<Product>
 }
 
 export default function ProdottoForm({ onSubmit, defaultValues }: ProdottoFormProps) {
-  const form = useForm<ProdottoFormData>({
-    resolver: zodResolver(prodottoSchema),
+  const form = useForm<Product>({
+    resolver: zodResolver(ProductSchema),
     defaultValues: {
-      codice: defaultValues?.codice || "",
-      descrizione: defaultValues?.descrizione || "",
-      misura: defaultValues?.misura || "",
-      prezzo: defaultValues?.prezzo || 0,
+      code: defaultValues?.code || '',
+      description: defaultValues?.description || '',
+      measure: defaultValues?.measure || '',
+      price: defaultValues?.price || 0,
     },
   })
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Prima riga: 3 colonne per codice, misura e prezzo */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <FormField
             control={form.control}
-            name="codice"
+            name="code"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Codice <span className="text-destructive">*</span></FormLabel>
+                <FormLabel>
+                  Codice <span className="text-destructive">*</span>
+                </FormLabel>
                 <FormControl>
                   <Input placeholder="Inserisci codice prodotto" {...field} />
                 </FormControl>
@@ -50,12 +44,12 @@ export default function ProdottoForm({ onSubmit, defaultValues }: ProdottoFormPr
 
           <FormField
             control={form.control}
-            name="misura"
+            name="measure"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Misura</FormLabel>
                 <FormControl>
-                  <Input placeholder="Es: pz, kg, m, lt" {...field} />
+                  <Input placeholder="Es: pz, kg, m, lt" {...field} value={field.value ?? ""}/>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -64,18 +58,14 @@ export default function ProdottoForm({ onSubmit, defaultValues }: ProdottoFormPr
 
           <FormField
             control={form.control}
-            name="prezzo"
+            name="price"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Prezzo <span className="text-destructive">*</span></FormLabel>
+                <FormLabel>
+                  Prezzo <span className="text-destructive">*</span>
+                </FormLabel>
                 <FormControl>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
-                    {...field}
-                  />
+                  <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -86,7 +76,7 @@ export default function ProdottoForm({ onSubmit, defaultValues }: ProdottoFormPr
         {/* Textarea grande per la descrizione */}
         <FormField
           control={form.control}
-          name="descrizione"
+          name="description"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Descrizione</FormLabel>
@@ -95,6 +85,7 @@ export default function ProdottoForm({ onSubmit, defaultValues }: ProdottoFormPr
                   placeholder="Inserisci descrizione dettagliata del prodotto"
                   className="min-h-[120px] resize-none"
                   {...field}
+                  value={field.value ?? ""}
                 />
               </FormControl>
               <FormMessage />
@@ -104,7 +95,9 @@ export default function ProdottoForm({ onSubmit, defaultValues }: ProdottoFormPr
 
         {/* Submit Button */}
         <div className="flex justify-end">
-          <Button type="submit" size="lg" className="cursor-pointer">Crea Prodotto</Button>
+          <Button type="submit" size="lg" className="cursor-pointer">
+            Crea Prodotto
+          </Button>
         </div>
       </form>
     </Form>

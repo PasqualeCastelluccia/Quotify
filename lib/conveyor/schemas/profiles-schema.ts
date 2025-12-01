@@ -1,29 +1,6 @@
 import { z } from 'zod'
+import { CompanyProfileSchema } from '@/lib/generated/zod'
 
-// Company Profile schema
-const companyProfileSchema = z.object({
-  id: z.number(),
-  profileName: z.string(),
-  businessName: z.string(),
-  vatNumber: z.string(),
-  address: z.string().nullish(),
-  zipCode: z.string().nullish(),
-  city: z.string().nullish(),
-  phone: z.string().nullish(),
-  email: z.string().nullish(),
-  smtpHost: z.string().nullish(),
-  smtpPort: z.number().optional(),
-  smtpSecure: z.boolean().optional(),
-  smtpUser: z.string().nullish(),
-  smtpPassword: z.string().nullish(),
-  smtpFromEmail: z.string().nullish(),
-  smtpFromName: z.string().nullish(),
-  isDefault: z.boolean().optional(),
-  createdAt: z.number().optional(),
-  updatedAt: z.number().optional(),
-})
-
-// Response schemas
 const successResponseSchema = z.object({
   success: z.boolean(),
   error: z.string().optional(),
@@ -35,38 +12,33 @@ const createResponseSchema = z.object({
   error: z.string().optional(),
 })
 
-// IPC schemas for profiles
 export const profilesIpcSchema = {
-  'profiles:getAll': {
+  'quotify-profiles:getAll': {
     args: z.tuple([]),
-    return: z.array(companyProfileSchema),
+    return: z.array(CompanyProfileSchema),
   },
-  'profiles:getById': {
+  'quotify-profiles:getById': {
     args: z.tuple([z.number()]),
-    return: companyProfileSchema.nullable(),
+    return: CompanyProfileSchema.nullable(),
   },
-  'profiles:getDefault': {
+  'quotify-profiles:getDefault': {
     args: z.tuple([]),
-    return: companyProfileSchema.nullable(),
+    return: CompanyProfileSchema.nullable(),
   },
-  'profiles:create': {
-    args: z.tuple([companyProfileSchema.omit({ id: true, createdAt: true, updatedAt: true })]),
+  'quotify-profiles:create': {
+    args: z.tuple([CompanyProfileSchema.omit({ id: true, createdAt: true, updatedAt: true })]),
     return: createResponseSchema,
   },
-  'profiles:update': {
-    args: z.tuple([companyProfileSchema.omit({ createdAt: true, updatedAt: true }).partial().required({ id: true })]),
+  'quotify-profiles:update': {
+    args: z.tuple([CompanyProfileSchema.omit({ createdAt: true, updatedAt: true }).partial().required({ id: true })]),
     return: successResponseSchema,
   },
-  'profiles:delete': {
+  'quotify-profiles:delete': {
     args: z.tuple([z.number()]),
     return: successResponseSchema,
   },
-  'profiles:setDefault': {
+  'quotify-profiles:setDefault': {
     args: z.tuple([z.number()]),
     return: successResponseSchema,
   },
 }
-
-export type CompanyProfile = z.infer<typeof companyProfileSchema>
-export type CompanyProfileCreate = z.infer<typeof companyProfileSchema>
-export type CompanyProfileUpdate = z.infer<typeof companyProfileSchema>

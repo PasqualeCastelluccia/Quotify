@@ -1,34 +1,27 @@
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { clienteSchema, type ClienteFormData } from "@/lib/validations/cliente"
-import { Button } from "@/app/components/ui/button"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/app/components/ui/form"
-import { Input } from "@/app/components/ui/input"
-import { Separator } from "@/app/components/ui/separator"
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { CustomerSchema, CustomerFormData } from '@/app/types/customer'
+import { Button } from '@/app/components/ui/button'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/app/components/ui/form'
+import { Input } from '@/app/components/ui/input'
+import { Separator } from '@/app/components/ui/separator'
 
 interface ClienteFormProps {
-  onSubmit: (data: ClienteFormData) => void
-  defaultValues?: Partial<ClienteFormData>
+  onSubmit: (data: CustomerFormData) => void
+  defaultValues?: Partial<CustomerFormData>
   isEditMode?: boolean
 }
 
 export default function ClienteForm({ onSubmit, defaultValues, isEditMode = false }: ClienteFormProps) {
-  const form = useForm<ClienteFormData>({
-    resolver: zodResolver(clienteSchema),
+  const form = useForm<CustomerFormData>({
+    resolver: zodResolver(CustomerSchema.omit({ id: true, createdAt: true, updatedAt: true })),
     defaultValues: {
-      businessName: defaultValues?.businessName || "",
-      email: defaultValues?.email || "",
-      vatNumber: defaultValues?.vatNumber || "",
-      address: defaultValues?.address || "",
-      zipCode: defaultValues?.zipCode || "",
-      city: defaultValues?.city || "",
+      businessName: defaultValues?.businessName || '',
+      email: defaultValues?.email || '',
+      vatNumber: defaultValues?.vatNumber || '',
+      address: defaultValues?.address || '',
+      zipCode: defaultValues?.zipCode || '',
+      city: defaultValues?.city || '',
     },
   })
 
@@ -45,7 +38,9 @@ export default function ClienteForm({ onSubmit, defaultValues, isEditMode = fals
                 name="businessName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Ragione Sociale <span className="text-destructive">*</span></FormLabel>
+                    <FormLabel>
+                      Ragione Sociale <span className="text-destructive">*</span>
+                    </FormLabel>
                     <FormControl>
                       <Input placeholder="Inserisci nome azienda o ditta" {...field} />
                     </FormControl>
@@ -59,7 +54,9 @@ export default function ClienteForm({ onSubmit, defaultValues, isEditMode = fals
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email <span className="text-destructive">*</span></FormLabel>
+                    <FormLabel>
+                      Email <span className="text-destructive">*</span>
+                    </FormLabel>
                     <FormControl>
                       <Input type="email" placeholder="contatto@azienda.it" {...field} />
                     </FormControl>
@@ -74,7 +71,9 @@ export default function ClienteForm({ onSubmit, defaultValues, isEditMode = fals
               name="vatNumber"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Partita IVA <span className="text-destructive">*</span></FormLabel>
+                  <FormLabel>
+                    Partita IVA <span className="text-destructive">*</span>
+                  </FormLabel>
                   <FormControl>
                     <Input placeholder="IT12345678901" {...field} />
                   </FormControl>
@@ -140,7 +139,7 @@ export default function ClienteForm({ onSubmit, defaultValues, isEditMode = fals
         {/* Submit Button */}
         <div className="flex justify-end">
           <Button type="submit" size="lg" className="cursor-pointer">
-            {isEditMode ? "Aggiorna Cliente" : "Crea Cliente"}
+            {isEditMode ? 'Aggiorna Cliente' : 'Crea Cliente'}
           </Button>
         </div>
       </form>

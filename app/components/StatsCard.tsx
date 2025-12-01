@@ -1,6 +1,6 @@
-import { Card } from "@/app/components/ui/card"
-import { LucideIcon, ArrowRight } from "lucide-react"
-import { Button } from "@/app/components/ui/button"
+import { Card } from '@/app/components/ui/card'
+import { LucideIcon, ArrowRight } from 'lucide-react'
+import { Button } from '@/app/components/ui/button'
 
 interface StatsCardProps {
   title: string
@@ -10,7 +10,7 @@ interface StatsCardProps {
   onNavigate?: () => void
 }
 
-export function StatsCard({ title, value, icon: Icon, iconColor = "text-primary", onNavigate }: StatsCardProps) {
+export function StatsCard({ title, value, icon: Icon, iconColor = 'text-primary', onNavigate }: StatsCardProps) {
   return (
     <Card className="p-6">
       <div className="flex flex-col gap-4">

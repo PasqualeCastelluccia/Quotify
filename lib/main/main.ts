@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { createAppWindow } from './app'
-import { closeDatabase } from '@/lib/database/db'
+import { closePrisma } from '@/lib/database/prisma'
 import { autoUpdater } from 'electron-updater'
 
 // Configurazione auto-updater
@@ -15,17 +15,19 @@ autoUpdater.on('checking-for-update', () => {
 
 autoUpdater.on('update-available', (info) => {
   console.log('Aggiornamento disponibile:', info.version)
-  
-  dialog.showMessageBox({
-    type: 'info',
-    title: 'Aggiornamento Disponibile',
-    message: `È disponibile la versione ${info.version}. Vuoi scaricarla?`,
-    buttons: ['Sì', 'Più tardi']
-  }).then((result) => {
-    if (result.response === 0) {
-      autoUpdater.downloadUpdate()
-    }
-  })
+
+  dialog
+    .showMessageBox({
+      type: 'info',
+      title: 'Aggiornamento Disponibile',
+      message: `È disponibile la versione ${info.version}. Vuoi scaricarla?`,
+      buttons: ['Sì', 'Più tardi'],
+    })
+    .then((result) => {
+      if (result.response === 0) {
+        autoUpdater.downloadUpdate()
+      }
+    })
 })
 
 autoUpdater.on('update-not-available', () => {
@@ -39,17 +41,19 @@ autoUpdater.on('download-progress', (progressObj) => {
 
 autoUpdater.on('update-downloaded', (info) => {
   console.log('Aggiornamento scaricato:', info.version)
-  
-  dialog.showMessageBox({
-    type: 'info',
-    title: 'Aggiornamento Pronto',
-    message: `L'aggiornamento alla versione ${info.version} è stato scaricato. L'app verrà riavviata per completare l'installazione.`,
-    buttons: ['Riavvia Ora', 'Più tardi']
-  }).then((result) => {
-    if (result.response === 0) {
-      autoUpdater.quitAndInstall(false, true)
-    }
-  })
+
+  dialog
+    .showMessageBox({
+      type: 'info',
+      title: 'Aggiornamento Pronto',
+      message: `L'aggiornamento alla versione ${info.version} è stato scaricato. L'app verrà riavviata per completare l'installazione.`,
+      buttons: ['Riavvia Ora', 'Più tardi'],
+    })
+    .then((result) => {
+      if (result.response === 0) {
+        autoUpdater.quitAndInstall(false, true)
+      }
+    })
 })
 
 autoUpdater.on('error', (err) => {
@@ -60,12 +64,12 @@ autoUpdater.on('error', (err) => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
-  
-  // Create app window
-  createAppWindow()
+
+  // Create app window (with database initialization)
+  await createAppWindow()
 
   // Controlla gli aggiornamenti dopo 3 secondi (solo in produzione)
   if (!app.isPackaged) {
@@ -83,11 +87,11 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  app.on('activate', function () {
+  app.on('activate', async function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) {
-      createAppWindow()
+      await createAppWindow()
     }
   })
 })
@@ -101,9 +105,9 @@ app.on('window-all-closed', () => {
   }
 })
 
-// Close database before app quits
-app.on('before-quit', () => {
-  closeDatabase()
+// Close Prisma database connection before app quits
+app.on('before-quit', async () => {
+  await closePrisma()
 })
 
 // In this file, you can include the rest of your app's specific main process

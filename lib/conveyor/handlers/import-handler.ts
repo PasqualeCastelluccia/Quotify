@@ -2,13 +2,13 @@ import { handle } from '@/lib/main/shared'
 import { dialog } from 'electron'
 import * as XLSX from 'xlsx'
 import fs from 'fs'
-import { db } from '@/lib/database/db'
+import { prisma } from '@/lib/database/prisma'
 
 interface ColumnMapping {
-  codice?: string
-  descrizione?: string
-  misura?: string
-  prezzo?: string
+  code?: string
+  description?: string
+  measure?: string
+  price?: string
 }
 
 export const registerImportHandlers = () => {
@@ -17,15 +17,13 @@ export const registerImportHandlers = () => {
     try {
       const result = await dialog.showOpenDialog({
         properties: ['openFile'],
-        filters: [
-          { name: 'Excel Files', extensions: ['xlsx', 'xls', 'csv'] }
-        ]
+        filters: [{ name: 'Excel Files', extensions: ['xlsx', 'xls', 'csv'] }],
       })
 
       if (result.canceled || result.filePaths.length === 0) {
         return {
           success: false,
-          error: 'Nessun file selezionato'
+          error: 'Nessun file selezionato',
         }
       }
 
@@ -43,7 +41,7 @@ export const registerImportHandlers = () => {
       if (jsonData.length === 0) {
         return {
           success: false,
-          error: 'Il file Excel è vuoto'
+          error: 'Il file Excel è vuoto',
         }
       }
 
@@ -59,7 +57,7 @@ export const registerImportHandlers = () => {
           columnsWithIndex.push({
             name: colName,
             letter: columnLetter,
-            index: idx
+            index: idx,
           })
         }
       })
@@ -68,17 +66,17 @@ export const registerImportHandlers = () => {
       if (columnsWithIndex.length === 0) {
         return {
           success: false,
-          error: 'Nessuna intestazione trovata alla riga 1. Assicurati che il file Excel abbia i nomi delle colonne nella prima riga. Se le intestazioni sono in una riga diversa, modifica il file Excel e riprova.'
+          error:
+            'Nessuna intestazione trovata alla riga 1. Assicurati che il file Excel abbia i nomi delle colonne nella prima riga. Se le intestazioni sono in una riga diversa, modifica il file Excel e riprova.',
         }
       }
 
-      const columns = columnsWithIndex.map(c => c.name)
-      const columnLetters = columnsWithIndex.map(c => c.letter)
+      const columns = columnsWithIndex.map((c) => c.name)
+      const columnLetters = columnsWithIndex.map((c) => c.letter)
 
-      // Get preview data (first 5 rows) with proper column mapping
-      const previewData = jsonData.slice(1, 6).map(row => {
+      const previewData = jsonData.slice(1, 6).map((row) => {
         const mappedRow: any = {}
-        columnsWithIndex.forEach(col => {
+        columnsWithIndex.forEach((col) => {
           mappedRow[col.name] = (row as any[])[col.index]
         })
         return mappedRow
@@ -90,12 +88,12 @@ export const registerImportHandlers = () => {
         columns,
         columnLetters,
         previewData,
-        totalRows: jsonData.length - 1 // Exclude header
+        totalRows: jsonData.length - 1, // Exclude header
       }
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Errore nella lettura del file'
+        error: error instanceof Error ? error.message : 'Errore nella lettura del file',
       }
     }
   })
@@ -103,6 +101,7 @@ export const registerImportHandlers = () => {
   // Import products with column mapping
   handle('import:importProducts', async (filePath: string, columnMapping: ColumnMapping) => {
     try {
+      console.log(columnMapping);
       const fileBuffer = fs.readFileSync(filePath)
       const workbook = XLSX.read(fileBuffer, { type: 'buffer' })
 
@@ -115,7 +114,7 @@ export const registerImportHandlers = () => {
       if (jsonData.length <= 1) {
         return {
           success: false,
-          error: 'Nessun dato da importare'
+          error: 'Nessun dato da importare',
         }
       }
 
@@ -125,8 +124,8 @@ export const registerImportHandlers = () => {
       let imported = 0
       let errors: string[] = []
 
-      // Extract column index from column name which is now in format "columnName|Letter"
-      // (e.g., "Prezzo|I" -> index I)
+      console.log("==================", columnMapping);
+
       const getColumnIndex = (columnName?: string): number | null => {
         if (!columnName) return null
         const parts = columnName.split('|')
@@ -136,66 +135,71 @@ export const registerImportHandlers = () => {
         return null
       }
 
-      const codiceIdx = getColumnIndex(columnMapping.codice)
-      const descrizioneIdx = getColumnIndex(columnMapping.descrizione)
-      const misuraIdx = getColumnIndex(columnMapping.misura)
-      const prezzoIdx = getColumnIndex(columnMapping.prezzo)
+      const codeIdx = getColumnIndex(columnMapping.code)
+      const descriptionIdx = getColumnIndex(columnMapping.description)
+      const measureIdx = getColumnIndex(columnMapping.measure)
+      const priceIdx = getColumnIndex(columnMapping.price)
 
-      if (codiceIdx === null || prezzoIdx === null) {
+      if (codeIdx === null || priceIdx === null) {
         return {
           success: false,
-          error: 'Mapping colonne non valido: codice e prezzo sono obbligatori'
+          error: 'Mapping colonne non valido: codice e prezzo sono obbligatori',
         }
       }
 
-      // Prepare insert statement
-      const stmt = db.prepare(`
-        INSERT INTO prodotti (codice, descrizione, misura, prezzo)
-        VALUES (@codice, @descrizione, @misura, @prezzo)
-      `)
+      const productsToInsert: Array<{
+        code: string
+        description: string | null
+        measure: string | null
+        price: number
+        createdAt: number
+        updatedAt: number
+      }> = []
 
-      // Begin transaction for better performance
-      const insertMany = db.transaction((rows: any[][]) => {
-        for (let i = 0; i < rows.length; i++) {
-          try {
-            const row = rows[i]
-            const codice = row[codiceIdx]
-            const prezzoStr = row[prezzoIdx]
-            const prezzo = prezzoStr !== undefined && prezzoStr !== null ? parseFloat(String(prezzoStr)) : null
+      for (let i = 0; i < dataRows.length; i++) {
+        try {
+          const row = dataRows[i]
+          const code = row[codeIdx]
+          const priceStr = row[priceIdx]
+          const price = priceStr !== undefined && priceStr !== null ? parseFloat(String(priceStr)) : null
 
-            // Validate required fields
-            if (!codice || !prezzo || isNaN(prezzo)) {
-              errors.push(`Riga ${i + 2} saltata: codice o prezzo mancante/invalido`)
-              continue
-            }
-
-            stmt.run({
-              codice: String(codice),
-              descrizione: descrizioneIdx !== null && row[descrizioneIdx] ? String(row[descrizioneIdx]) : null,
-              misura: misuraIdx !== null && row[misuraIdx] ? String(row[misuraIdx]) : null,
-              prezzo: prezzo,
-            })
-
-            imported++
-          } catch (error) {
-            errors.push(`Errore riga ${i + 2}: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`)
+          // Validate required fields
+          if (!code || !price || isNaN(price)) {
+            errors.push(`Riga ${i + 2} saltata: codice o prezzo mancante/invalido`)
+            continue
           }
-        }
-      })
 
-      // Execute transaction
-      insertMany(dataRows)
+          productsToInsert.push({
+            code: String(code),
+            description: descriptionIdx !== null && row[descriptionIdx] ? String(row[descriptionIdx]) : null,
+            measure: measureIdx !== null && row[measureIdx] ? String(row[measureIdx]) : null,
+            price: price,
+            createdAt: Math.floor(Date.now() / 1000),
+            updatedAt: Math.floor(Date.now() / 1000),
+          })
+
+          imported++
+        } catch (error) {
+          errors.push(`Errore riga ${i + 2}: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`)
+        }
+      }
+
+      if (productsToInsert.length > 0) {
+        await prisma.product.createMany({
+          data: productsToInsert,
+        })
+      }
 
       return {
         success: true,
         imported,
         errors: errors.length > 0 ? errors : undefined,
-        total: dataRows.length
+        total: dataRows.length,
       }
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Errore nell\'importazione'
+        error: error instanceof Error ? error.message : "Errore nell'importazione",
       }
     }
   })

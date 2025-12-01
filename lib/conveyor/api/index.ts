@@ -1,10 +1,10 @@
 import { electronAPI } from '@electron-toolkit/preload'
 import { AppApi } from './app-api'
 import { WindowApi } from './window-api'
-import { ClientiApi } from './clienti-api'
-import { ProdottiApi } from './prodotti-api'
+import { CustomersApi } from './customers-api'
+import { ProductsApi } from './products-api'
 import { ImportApi } from './import-api'
-import { PreventiviApi } from './preventivi-api'
+import { QuotesApi } from './quotes-api'
 import { PdfApi } from './pdf-api'
 import { ProfilesApi } from './profiles-api'
 import { EmailApi } from './email-api'
@@ -12,10 +12,10 @@ import { EmailApi } from './email-api'
 export const conveyor = {
   app: new AppApi(electronAPI),
   window: new WindowApi(electronAPI),
-  clienti: new ClientiApi(electronAPI),
-  prodotti: new ProdottiApi(electronAPI),
+  customers: new CustomersApi(electronAPI),
+  products: new ProductsApi(electronAPI),
   import: new ImportApi(electronAPI),
-  preventivi: new PreventiviApi(electronAPI),
+  quotes: new QuotesApi(electronAPI),
   pdf: new PdfApi(electronAPI),
   profiles: new ProfilesApi(electronAPI),
   email: new EmailApi(electronAPI),

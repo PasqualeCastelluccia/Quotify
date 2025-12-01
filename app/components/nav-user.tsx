@@ -1,13 +1,6 @@
-import {
-  ChevronsUpDown,
-  Settings,
-} from "lucide-react"
+import { ChevronsUpDown, Settings } from 'lucide-react'
 
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/app/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,14 +9,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/app/components/ui/dropdown-menu"
-import {
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from "@/app/components/ui/sidebar"
-import { useNavigation } from "@/app/context/NavigationContext"
+} from '@/app/components/ui/dropdown-menu'
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/app/components/ui/sidebar'
+import { useNavigation } from '@/app/context/NavigationContext'
 
 export function NavUser({
   user,
@@ -59,7 +47,7 @@ export function NavUser({
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-            side={isMobile ? "bottom" : "right"}
+            side={isMobile ? 'bottom' : 'right'}
             align="end"
             sideOffset={4}
           >
@@ -77,7 +65,7 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => navigateTo("settings")}>
+              <DropdownMenuItem onClick={() => navigateTo('settings')}>
                 <Settings />
                 Impostazioni
               </DropdownMenuItem>

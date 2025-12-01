@@ -8,6 +8,8 @@ const aliases = {
   '@/app': resolve(__dirname, 'app'),
   '@/lib': resolve(__dirname, 'lib'),
   '@/resources': resolve(__dirname, 'resources'),
+  '@/generated': resolve(__dirname, 'generated'),
+  '@': resolve(__dirname, '.'),
 }
 
 export default defineConfig({

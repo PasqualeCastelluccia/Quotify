@@ -1,9 +1,10 @@
 import { createContext, useContext, useState, ReactNode } from 'react'
 import type { PageType } from '@/app/types/navigation'
+import type { Customer } from '@/app/types/customer'
 
 interface NavigationParams {
-  clienteId?: number
-  clienteBusinessName?: string
+  customer?: Customer
+  customerId?: number
   [key: string]: any
 }
 
@@ -24,11 +25,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     setParams(newParams || {})
   }
 
-  return (
-    <NavigationContext.Provider value={{ currentPage, params, navigateTo }}>
-      {children}
-    </NavigationContext.Provider>
-  )
+  return <NavigationContext.Provider value={{ currentPage, params, navigateTo }}>{children}</NavigationContext.Provider>
 }
 
 export function useNavigation() {

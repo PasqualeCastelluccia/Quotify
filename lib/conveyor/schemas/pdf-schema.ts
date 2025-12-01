@@ -7,7 +7,7 @@ const pdfResponseSchema = z.object({
 })
 
 export const pdfIpcSchema = {
-  'pdf:generatePreventivo': {
+  'pdf:generateQuote': {
     args: z.tuple([z.number()]),
     return: pdfResponseSchema,
   },

@@ -26,17 +26,17 @@ export type CompanyProfileCreate = Omit<CompanyProfile, 'id' | 'createdAt' | 'up
 export type CompanyProfileUpdate = Partial<CompanyProfileCreate> & { id: number }
 
 export class ProfilesApi extends ConveyorApi {
-  getAll = () => this.invoke('profiles:getAll')
+  getAll = () => this.invoke('quotify-profiles:getAll')
 
-  getById = (id: number) => this.invoke('profiles:getById', id)
+  getById = (id: number) => this.invoke('quotify-profiles:getById', id)
 
-  getDefault = () => this.invoke('profiles:getDefault')
+  getDefault = () => this.invoke('quotify-profiles:getDefault')
 
-  create = (profileData: CompanyProfileCreate) => this.invoke('profiles:create', profileData)
+  create = (profileData: CompanyProfileCreate) => this.invoke('quotify-profiles:create', profileData)
 
-  update = (profileData: CompanyProfileUpdate) => this.invoke('profiles:update', profileData)
+  update = (profileData: CompanyProfileUpdate) => this.invoke('quotify-profiles:update', profileData)
 
-  delete = (id: number) => this.invoke('profiles:delete', id)
+  delete = (id: number) => this.invoke('quotify-profiles:delete', id)
 
-  setDefault = (id: number) => this.invoke('profiles:setDefault', id)
+  setDefault = (id: number) => this.invoke('quotify-profiles:setDefault', id)
 }

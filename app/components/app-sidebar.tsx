@@ -1,56 +1,26 @@
-"use client"
-import * as React from "react"
-import {
-  AudioWaveform,
-  Command,
-  GalleryVerticalEnd,
-  Home,
-  FileText,
-  Users,
-  Package,
-  Moon,
-  Sun,
-} from "lucide-react"
-import { NavMain } from "@/app/components/nav-main"
-import { NavUser } from "@/app/components/nav-user"
-import { TeamSwitcher } from "@/app/components/team-switcher"
+'use client'
+import * as React from 'react'
+import {Home, FileText, Users, Package, Settings, Moon, Sun } from 'lucide-react'
+import { NavMain } from '@/app/components/nav-main'
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarHeader,
   SidebarRail,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-} from "@/app/components/ui/sidebar"
-import { useNavigation } from "@/app/context/NavigationContext"
-import { useTheme } from "@/app/context/ThemeContext"
+} from '@/app/components/ui/sidebar'
+import { useNavigation } from '@/app/context/NavigationContext'
+import { useTheme } from '@/app/context/ThemeContext'
 
 // This is sample data.
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: 'shadcn',
+    email: 'm@example.com',
+    avatar: '/avatars/shadcn.jpg',
   },
-  teams: [
-    {
-      name: "Acme Inc",
-      logo: GalleryVerticalEnd,
-      plan: "Enterprise",
-    },
-    {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
-    },
-  ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -59,60 +29,63 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const navMain = [
     {
-      title: "Dashboard",
-      page: "dashboard" as const,
+      title: 'Dashboard',
+      page: 'dashboard' as const,
       icon: Home,
-      isActive: currentPage === "dashboard",
+      isActive: currentPage === 'dashboard',
     },
     {
-      title: "Preventivi",
-      page: "preventivi" as const,
+      title: 'Preventivi',
+      page: 'quotes' as const,
       icon: FileText,
-      isActive: currentPage === "preventivi" || currentPage === "crea-preventivo",
+      isActive: currentPage === 'quotes' || currentPage === 'create-quote',
       items: [
         {
-          title: "Tutti i preventivi",
-          page: "preventivi" as const,
+          title: 'Tutti i preventivi',
+          page: 'quotes' as const,
         },
         {
-          title: "Crea preventivo",
-          page: "crea-preventivo" as const,
+          title: 'Crea preventivo',
+          page: 'create-quote' as const,
         },
       ],
     },
     {
-      title: "Clienti",
-      page: "clienti" as const,
+      title: 'Clienti',
+      page: 'customers' as const,
       icon: Users,
-      isActive: currentPage === "clienti" || currentPage === "aggiungi-cliente" || currentPage === "dettaglio-cliente",
+      isActive: currentPage === 'customers' || currentPage === 'customer-create' || currentPage === 'customer',
       items: [
         {
-          title: "Tutti i clienti",
-          page: "clienti" as const,
+          title: 'Tutti i clienti',
+          page: 'customers' as const,
         },
         {
-          title: "Aggiungi cliente",
-          page: "aggiungi-cliente" as const,
+          title: 'Aggiungi cliente',
+          page: 'customer-create' as const,
         },
       ],
     },
     {
-      title: "Prodotti",
-      page: "prodotti" as const,
+      title: 'Prodotti',
+      page: 'products' as const,
       icon: Package,
-      isActive: currentPage === "prodotti" || currentPage === "aggiungi-prodotto" || currentPage === "importa-prodotti" || currentPage === "dettaglio-prodotto",
+      isActive:
+        currentPage === 'products' ||
+        currentPage === 'create-product' ||
+        currentPage === 'import-products-from-file',
       items: [
         {
-          title: "Tutti i prodotti",
-          page: "prodotti" as const,
+          title: 'Tutti i prodotti',
+          page: 'products' as const,
         },
         {
-          title: "Aggiungi prodotto",
-          page: "aggiungi-prodotto" as const,
+          title: 'Aggiungi prodotto',
+          page: 'create-product' as const,
         },
         {
-          title: "Importa da File",
-          page: "importa-prodotti" as const,
+          title: 'Importa da File',
+          page: 'import-products-from-file' as const,
         },
       ],
     },
@@ -120,9 +93,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
-      </SidebarHeader>
       <SidebarContent>
         <NavMain items={navMain} onNavigate={navigateTo} />
       </SidebarContent>
@@ -143,8 +113,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               )}
             </SidebarMenuButton>
           </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={() => navigateTo('settings')} tooltip="Impostazioni">
+              <Settings className="h-4 w-4" />
+              <span>Impostazioni</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
-        <NavUser user={data.user} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

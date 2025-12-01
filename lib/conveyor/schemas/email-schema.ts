@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 const emailDataSchema = z.object({
-  preventivoId: z.number(),
+  quoteId: z.number(),
   to: z.string().email(),
   subject: z.string(),
   body: z.string(),
@@ -13,7 +13,7 @@ const emailResponseSchema = z.object({
 })
 
 export const emailIpcSchema = {
-  'email:sendPreventivo': {
+  'email:sendQuote': {
     args: z.tuple([emailDataSchema]),
     return: emailResponseSchema,
   },

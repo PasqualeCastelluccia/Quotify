@@ -1,10 +1,10 @@
 import { z } from 'zod'
 import { windowIpcSchema } from './window-schema'
 import { appIpcSchema } from './app-schema'
-import { clientiIpcSchema } from './clienti-schema'
-import { prodottiIpcSchema } from './prodotti-schema'
+import { customersIpcSchema } from './customers-schema'
+import { quotesIpcSchema } from './quotes-schema'
+import { productsIpcSchema } from './products-schema'
 import { importIpcSchema } from './import-schema'
-import { preventiviIpcSchema } from './preventivi-schema'
 import { pdfIpcSchema } from './pdf-schema'
 import { profilesIpcSchema } from './profiles-schema'
 import { emailIpcSchema } from './email-schema'
@@ -12,10 +12,10 @@ import { emailIpcSchema } from './email-schema'
 export const ipcSchemas = {
   ...windowIpcSchema,
   ...appIpcSchema,
-  ...clientiIpcSchema,
-  ...prodottiIpcSchema,
+  ...customersIpcSchema,
+  ...quotesIpcSchema,
+  ...productsIpcSchema,
   ...importIpcSchema,
-  ...preventiviIpcSchema,
   ...pdfIpcSchema,
   ...profilesIpcSchema,
   ...emailIpcSchema,

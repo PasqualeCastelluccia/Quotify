@@ -1,10 +1,10 @@
 import { z } from 'zod'
 
 const columnMappingSchema = z.object({
-  codice: z.string().optional(),
-  descrizione: z.string().optional(),
-  misura: z.string().optional(),
-  prezzo: z.string().optional(),
+  code: z.string().optional(),
+  description: z.string().optional(),
+  measure: z.string().optional(),
+  price: z.string().optional(),
 })
 
 const selectExcelResponseSchema = z.object({
