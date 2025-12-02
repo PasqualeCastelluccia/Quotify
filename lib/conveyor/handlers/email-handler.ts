@@ -87,6 +87,7 @@ export const registerEmailHandlers = () => {
       const pdfPath = await generateQuotePDF({
         quote: {
           id: quote.id,
+          revision: quote.revision,
           number: quote.number,
           date: quote.date,
           companyProfileId: quote.companyProfileId || undefined,

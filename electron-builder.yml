@@ -9,11 +9,25 @@ files:
   - '!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - 'dist/**/*' 
+  - 'out/**/*'
+  - 'node_modules/.prisma/**/*' 
+  - 'node_modules/@prisma/client/**/*'
+  - from: 'node_modules/.prisma'
+    to: 'node_modules/.prisma'
+    filter: ['**/*']
 extraResources:
   - from: 'lib/templates'
     to: 'lib'
+  - from: 'prisma/schema.prisma' 
+    to: 'prisma/schema.prisma'
+  - from: 'prisma/prisma_quotify.db'    
+    to: 'prisma_quotify.db'   
 asarUnpack:
-  - resources/**
+  - 'node_modules/.prisma/**/*'
+  - 'node_modules/@prisma/client/**/*'
+  - 'node_modules/better-sqlite3/**/*'
+
 win:
   executableName: Quotify
 nsis:

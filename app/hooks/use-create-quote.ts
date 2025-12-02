@@ -11,7 +11,7 @@ export function useCreateQuote(customerIdFromParams?: number, quoteIdFromParams?
   const [quoteId, setQuoteId] = useState<number | null>(null)
   const [rows, setRows] = useState<QuoteItemUI[]>([])
   const [quoteNumber, setQuoteNumber] = useState<number>(0)
-  const [quoteRevision, setQuoteRevision] = useState<number>(0)
+  const [quoteRevision, setQuoteRevision] = useState<number>(1)
   const [quoteDate, setQuoteDate] = useState(new Date().toISOString().split('T')[0])
   const [notes, setNotes] = useState('')
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | undefined>()

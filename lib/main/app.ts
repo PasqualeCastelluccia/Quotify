@@ -12,14 +12,10 @@ import { registerPdfHandlers } from '@/lib/conveyor/handlers/pdf-handler'
 import { registerProfilesHandlers } from '@/lib/conveyor/handlers/profiles-handler'
 import { registerEmailHandlers } from '@/lib/conveyor/handlers/email-handler'
 import { initializePrisma } from '@/lib/database/prisma'
-import { runMigrations } from '@/lib/database/migrations'
 
 export async function createAppWindow(): Promise<void> {
   // Register custom protocol for resources
   registerResourcesProtocol()
-
-  // Run migrations (if any)
-  await runMigrations()
 
   // Initialize Prisma database connection
   await initializePrisma()

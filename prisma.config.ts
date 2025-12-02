@@ -1,4 +1,4 @@
-import { defineConfig, env } from 'prisma/config'
+import { defineConfig } from 'prisma/config'
 import { config } from 'dotenv'
 
 // Load environment variables from .env file
@@ -11,6 +11,6 @@ export default defineConfig({
   },
   engine: 'classic',
   datasource: {
-    url: env('DATABASE_URL'),
+    url: 'file:./prisma_quotify.db', 
   },
 })
